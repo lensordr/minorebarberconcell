@@ -105,12 +105,6 @@ def get_available_times(db: Session, barber_id: int):
     start_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.start_hour))
     end_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.end_hour))
     
-    # Don't allow booking times that have already passed
-    if start_time < now:
-        start_time = now.replace(minute=0 if now.minute < 30 else 30, second=0, microsecond=0)
-        if now.minute >= 30:
-            start_time = start_time.replace(hour=start_time.hour + 1, minute=0)
-    
     # Get existing appointments for this barber today (exclude cancelled)
     existing = db.query(models.Appointment).filter(
         models.Appointment.barber_id == barber_id,
@@ -123,8 +117,8 @@ def get_available_times(db: Session, barber_id: int):
     available_times = []
     current = start_time
     while current < end_time:
-        # Check if this time slot is available and not in the past
-        if current > now:
+        # Only show times that are in the future (at least 30 minutes from now)
+        if current > now + timedelta(minutes=30):
             is_available = True
             for appointment in existing:
                 if appointment.appointment_time == current:
