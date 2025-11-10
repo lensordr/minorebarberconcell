@@ -46,6 +46,10 @@ def delete_service(db: Session, service_id: int):
 def create_appointment(db: Session, client_name: str, phone: str, service_id: int, barber_id: int, appointment_time: str):
     appointment_dt = datetime.fromisoformat(appointment_time)
     
+    # Check if appointment time is in the past
+    if appointment_dt <= datetime.now():
+        raise ValueError("Cannot book appointments in the past")
+    
     # Check if slot is already taken
     existing = db.query(models.Appointment).filter(
         models.Appointment.barber_id == barber_id,
