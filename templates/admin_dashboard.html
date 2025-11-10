@@ -44,7 +44,7 @@
         const timeSelect = document.getElementById('walkinTime');
         
         if (barberId) {
-            fetch(`/api/available-times/${barberId}`)
+            fetch(`/api/available-times/${barberId}?t=${Date.now()}`)
                 .then(response => response.json())
                 .then(times => {
                     timeSelect.innerHTML = '<option value="">Select time</option>';
