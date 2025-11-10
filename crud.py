@@ -46,9 +46,9 @@ def delete_service(db: Session, service_id: int):
 def create_appointment(db: Session, client_name: str, phone: str, service_id: int, barber_id: int, appointment_time: str):
     appointment_dt = datetime.fromisoformat(appointment_time)
     
-    # Check if appointment time is in the past
-    if appointment_dt <= datetime.now():
-        raise ValueError("Cannot book appointments in the past")
+    # Check if appointment time is in the past (must be at least 30 minutes in the future)
+    if appointment_dt <= datetime.now() + timedelta(minutes=30):
+        raise ValueError("Cannot book appointments in the past or within 30 minutes")
     
     # Check if slot is already taken
     existing = db.query(models.Appointment).filter(
@@ -121,8 +121,8 @@ def get_available_times(db: Session, barber_id: int):
     available_times = []
     current = start_time
     while current < end_time:
-        # Only show times that are in the future (must be later than current time)
-        if current > now:
+        # Only show times that are at least 30 minutes in the future
+        if current > now + timedelta(minutes=30):
             is_available = True
             for appointment in existing:
                 if appointment.appointment_time == current:
