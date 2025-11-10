@@ -321,7 +321,7 @@ main {
 
 .grid-header {
     display: grid;
-    grid-template-columns: 100px repeat(6, 1fr);
+    grid-template-columns: 100px repeat(9, 1fr);
     background: #1d1a1c;
     border-bottom: 1px solid #444;
     min-width: 100%;
@@ -349,7 +349,7 @@ main {
 
 .grid-row {
     display: grid;
-    grid-template-columns: 100px repeat(6, 1fr);
+    grid-template-columns: 100px repeat(9, 1fr);
     background: #1d1a1c;
     border-bottom: 1px solid #444;
     min-height: 60px;
@@ -1066,8 +1066,8 @@ main {
     
     .grid-header,
     .grid-row {
-        grid-template-columns: 60px repeat(6, minmax(100px, 1fr));
-        min-width: 660px;
+        grid-template-columns: 60px repeat(9, minmax(80px, 1fr));
+        min-width: 780px;
     }
     
     .barber-header {
