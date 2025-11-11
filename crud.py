@@ -45,10 +45,21 @@ def delete_service(db: Session, service_id: int):
 
 def create_appointment(db: Session, client_name: str, phone: str, service_id: int, barber_id: int, appointment_time: str):
     appointment_dt = datetime.fromisoformat(appointment_time)
+    now = datetime.now()
     
-    # Check if appointment time is in the past (must be at least 30 minutes in the future)
-    if appointment_dt <= datetime.now() + timedelta(minutes=30):
-        raise ValueError("Cannot book appointments in the past or within 30 minutes")
+    # Calculate next available slot
+    current_minutes = now.minute
+    if current_minutes <= 30:
+        next_slot_minutes = 30
+    else:
+        next_slot_minutes = 0
+        now = now.replace(hour=now.hour + 1)
+    
+    earliest_time = now.replace(minute=next_slot_minutes, second=0, microsecond=0)
+    
+    # Check if appointment time is before the next available slot
+    if appointment_dt < earliest_time:
+        raise ValueError("Cannot book appointments in current or past time slots")
     
     # Check if slot is already taken
     existing = db.query(models.Appointment).filter(
@@ -109,6 +120,16 @@ def get_available_times(db: Session, barber_id: int):
     start_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.start_hour))
     end_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.end_hour))
     
+    # Round current time UP to next 30-minute slot
+    current_minutes = now.minute
+    if current_minutes <= 30:
+        next_slot_minutes = 30
+    else:
+        next_slot_minutes = 0
+        now = now.replace(hour=now.hour + 1)
+    
+    earliest_time = now.replace(minute=next_slot_minutes, second=0, microsecond=0)
+    
     # Get existing appointments for this barber today (exclude cancelled)
     existing = db.query(models.Appointment).filter(
         models.Appointment.barber_id == barber_id,
@@ -121,8 +142,8 @@ def get_available_times(db: Session, barber_id: int):
     available_times = []
     current = start_time
     while current < end_time:
-        # Only show times that are at least 30 minutes in the future
-        if current > now + timedelta(minutes=30):
+        # Only show times from the next available slot onwards
+        if current >= earliest_time:
             is_available = True
             for appointment in existing:
                 if appointment.appointment_time == current:
