@@ -1,0 +1,37 @@
+/* Extra Small Mobile */
+@media (max-width: 480px) {
+    .grid-header,
+    .grid-row {
+        grid-template-columns: 45px repeat(4, minmax(65px, 1fr));
+        min-width: 305px;
+    }
+    
+    .barber-header {
+        font-size: 0.6rem;
+        padding: 0.4rem 0.1rem;
+    }
+    
+    .time-header,
+    .time-cell {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.2rem;
+    }
+    
+    .appointment-item {
+        padding: 0.25rem;
+    }
+    
+    .client-name {
+        font-size: 0.6rem;
+    }
+    
+    .service-name {
+        font-size: 0.5rem;
+    }
+    
+    .btn-mini {
+        width: 16px;
+        height: 16px;
+        font-size: 0.55rem;
+    }
+}
