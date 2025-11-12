@@ -17,31 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Real-time updates for dashboard using Server-Sent Events
+    // Manual refresh only - no auto refresh
     if (window.location.pathname === '/admin/dashboard') {
-        const eventSource = new EventSource('/api/appointment-updates');
-        let refreshTimeout;
-        
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.update) {
-                // Clear any existing timeout
-                if (refreshTimeout) {
-                    clearTimeout(refreshTimeout);
-                }
-                // Delay refresh by 3 seconds to allow user interactions
-                refreshTimeout = setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
-            }
-        };
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            eventSource.close();
-            if (refreshTimeout) {
-                clearTimeout(refreshTimeout);
-            }
-        });
+        // Add manual refresh button functionality if needed
+        console.log('Dashboard loaded - manual refresh only');
     }
 });
