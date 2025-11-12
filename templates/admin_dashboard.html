@@ -225,9 +225,7 @@ window.onclick = function(event) {
 
 // Auto-refresh dashboard when appointment is added
 document.getElementById('quickBookingForm').addEventListener('submit', function() {
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
+    // Refresh will happen via SSE, no need for manual reload
 });
 </script>
 {% endblock %}

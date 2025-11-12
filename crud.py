@@ -48,14 +48,17 @@ def create_appointment(db: Session, client_name: str, phone: str, service_id: in
     now = datetime.now()
     
     # Calculate next available slot
-    current_minutes = now.minute
-    if current_minutes <= 30:
-        next_slot_minutes = 30
-    else:
-        next_slot_minutes = 0
-        now = now.replace(hour=now.hour + 1)
+    current_hour = now.hour
+    current_minute = now.minute
     
-    earliest_time = now.replace(minute=next_slot_minutes, second=0, microsecond=0)
+    if current_minute < 30:
+        next_hour = current_hour
+        next_minute = 30
+    else:
+        next_hour = current_hour + 1
+        next_minute = 0
+    
+    earliest_time = datetime.combine(now.date(), datetime.min.time().replace(hour=next_hour, minute=next_minute))
     
     # Check if appointment time is before the next available slot
     if appointment_dt < earliest_time:
@@ -120,15 +123,20 @@ def get_available_times(db: Session, barber_id: int):
     start_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.start_hour))
     end_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.end_hour))
     
-    # Round current time UP to next 30-minute slot
-    current_minutes = now.minute
-    if current_minutes <= 30:
-        next_slot_minutes = 30
-    else:
-        next_slot_minutes = 0
-        now = now.replace(hour=now.hour + 1)
+    # Calculate next available slot based on current time
+    current_hour = now.hour
+    current_minute = now.minute
     
-    earliest_time = now.replace(minute=next_slot_minutes, second=0, microsecond=0)
+    if current_minute < 30:
+        # If it's before :30, next slot is :30 of current hour
+        next_hour = current_hour
+        next_minute = 30
+    else:
+        # If it's after :30, next slot is :00 of next hour
+        next_hour = current_hour + 1
+        next_minute = 0
+    
+    earliest_time = datetime.combine(today, datetime.min.time().replace(hour=next_hour, minute=next_minute))
     
     # Get existing appointments for this barber today (exclude cancelled)
     existing = db.query(models.Appointment).filter(

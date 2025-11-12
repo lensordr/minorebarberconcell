@@ -62,6 +62,9 @@ document.getElementById('barber_id').addEventListener('change', function() {
     const timeSelect = document.getElementById('appointment_time');
     
     if (barberId) {
+        timeSelect.innerHTML = '<option value="">Loading times...</option>';
+        timeSelect.disabled = true;
+        
         fetch(`/api/available-times/${barberId}?t=${Date.now()}`)
             .then(response => response.json())
             .then(times => {
@@ -71,6 +74,10 @@ document.getElementById('barber_id').addEventListener('change', function() {
                     const datetime = `${today}T${time}:00`;
                     timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
                 });
+                timeSelect.disabled = false;
+            })
+            .catch(error => {
+                timeSelect.innerHTML = '<option value="">Error loading times</option>';
                 timeSelect.disabled = false;
             });
     } else {

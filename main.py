@@ -332,7 +332,7 @@ async def appointment_updates():
         while True:
             await appointment_updated.wait()
             yield f"data: {{\"update\": true}}\n\n"
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(2)  # Wait 2 seconds before next check
     
     return StreamingResponse(
         event_stream(),
