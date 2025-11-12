@@ -55,36 +55,36 @@ try:
 except Exception as e:
     print(f"Initial data setup error: {e}")
 
-# Scheduler for automatic cleanup
+# Keep-alive scheduler
 scheduler = AsyncIOScheduler()
 
-async def auto_cleanup():
-    """Automatic daily cleanup at 22:00"""
-    db = next(get_db())
-    try:
-        cleaned = crud.cleanup_daily_and_save_revenue(db)
-        print(f"Auto cleanup completed: {cleaned} appointments processed")
-    except Exception as e:
-        print(f"Auto cleanup error: {e}") 
-    finally:
-        db.close()
+async def keep_alive():
+    """Keep app alive during business hours (10 AM - 7 PM)"""
+    import aiohttp
+    import os
+    
+    current_hour = datetime.now().hour
+    if 10 <= current_hour < 19:  # Only during business hours
+        try:
+            app_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{app_url}/") as response:
+                    print(f"Keep-alive ping: {response.status} at {datetime.now().strftime('%H:%M')}")
+        except Exception as e:
+            print(f"Keep-alive error: {e}")
 
-# Keep-alive function disabled
-
-# Schedule cleanup every day at 22:00
+# Schedule keep-alive every 14 minutes
 scheduler.add_job(
-    auto_cleanup,
-    CronTrigger(hour=22, minute=0),
-    id='daily_cleanup',
+    keep_alive,
+    'interval',
+    minutes=14,
+    id='keep_alive',
     replace_existing=True
 )
-
-# Keep-alive disabled
 
 @app.on_event("startup")
 async def startup_event():
     scheduler.start()
-    print("Scheduler started - Auto cleanup at 22:00 daily")
     print("Keep-alive active during business hours (10 AM - 7 PM)")
     print("MINORE BARBERSHOP - Ready for appointments!")
 
@@ -95,6 +95,16 @@ async def shutdown_event():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
+
+@app.get("/test")
+async def test_page():
+    with open("test.html", "r") as f:
+        return HTMLResponse(content=f.read())
+
+@app.get("/test-dashboard")
+async def test_dashboard():
+    with open("test_dashboard.html", "r") as f:
+        return HTMLResponse(content=f.read())
 
 @app.get("/book", response_class=HTMLResponse)
 async def book_appointment(request: Request, db: Session = Depends(get_db)):
@@ -118,6 +128,7 @@ async def create_appointment(
 ):
     try:
         appointment = crud.create_appointment(db, client_name, phone, service_id, barber_id, appointment_time)
+        # Trigger dashboard refresh for admin
         return RedirectResponse(url="/success", status_code=303)
     except ValueError:
         services = crud.get_services(db)
@@ -158,8 +169,8 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin_dashboard.html", {
         "request": request,
         "appointments": appointments,
-        "barbers": crud.get_active_barbers(db),  # Only active barbers for walk-in form
-        "all_barbers": barbers,  # All barbers for grid display
+        "barbers": crud.get_active_barbers(db),
+        "all_barbers": barbers,
         "services": services,
         "schedule": schedule,
         "counts": counts,

@@ -15,52 +15,11 @@
 <div class="container full-width">
 <div class="dashboard">
     <div class="quick-add">
-        <h3>Add Walk-in</h3>
-        <form method="POST" action="/admin/add-appointment" class="walkin-form">
-            <input type="text" name="client_name" placeholder="Client name" required>
-            <input type="tel" name="phone" placeholder="Phone" required>
-            <select name="service_id" required>
-                <option value="">Service</option>
-                {% for service in services %}
-                <option value="{{ service.id }}">{{ service.name }} - €{{ service.price }}</option>
-                {% endfor %}
-            </select>
-            <select name="barber_id" id="walkinBarber" required>
-                <option value="">Barber</option>
-                {% for barber in barbers %}
-                <option value="{{ barber.id }}">{{ barber.name }}</option>
-                {% endfor %}
-            </select>
-            <select name="appointment_time" id="walkinTime" required disabled>
-                <option value="">Select barber first</option>
-            </select>
-            <button type="submit" class="btn btn-primary">Add</button>
-        </form>
+        <h3>Click on a time slot (+) to add appointment</h3>
+        {% if message %}
+        <div class="success-message" style="background: #d4edda; color: #155724; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem;">{{ message }}</div>
+        {% endif %}
     </div>
-    
-    <script>
-    document.getElementById('walkinBarber').addEventListener('change', function() {
-        const barberId = this.value;
-        const timeSelect = document.getElementById('walkinTime');
-        
-        if (barberId) {
-            fetch(`/api/available-times/${barberId}?t=${Date.now()}`)
-                .then(response => response.json())
-                .then(times => {
-                    timeSelect.innerHTML = '<option value="">Select time</option>';
-                    times.forEach(time => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const datetime = `${today}T${time}:00`;
-                        timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
-                    });
-                    timeSelect.disabled = false;
-                });
-        } else {
-            timeSelect.innerHTML = '<option value="">Select barber first</option>';
-            timeSelect.disabled = true;
-        }
-    });
-    </script>
     
     <div class="appointment-stats">
         <h2>Today's Appointments</h2>
@@ -68,6 +27,7 @@
             <span class="stat">Total: {{ counts.total }}</span>
             <span class="stat completed">Completed: {{ counts.completed }}</span>
             <span class="stat cancelled">Cancelled: {{ counts.cancelled }}</span>
+
         </div>
     </div>
     
@@ -157,7 +117,7 @@
     <div class="modal-content">
         <span class="close" onclick="closeQuickBooking()">&times;</span>
         <h3>Quick Appointment</h3>
-        <form id="quickBookingForm" method="POST" action="/admin/add-appointment">
+        <form id="quickBookingForm" onsubmit="submitQuickBooking(event)">
             <div class="form-group">
                 <label>Barber:</label>
                 <span id="selectedBarber"></span>
@@ -223,9 +183,26 @@ window.onclick = function(event) {
     }
 }
 
-// Auto-refresh dashboard when appointment is added
-document.getElementById('quickBookingForm').addEventListener('submit', function() {
-    // Refresh will happen via SSE, no need for manual reload
-});
+// AJAX submission with refresh trigger
+function submitQuickBooking(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    fetch('/admin/add-appointment', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        closeQuickBooking();
+        if (data.success) {
+            // Only refresh when appointment is successfully created
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            alert(data.message);
+        }
+    });
+}
 </script>
 {% endblock %}

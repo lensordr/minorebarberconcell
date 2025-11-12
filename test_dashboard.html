@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dashboard</title>
+</head>
+<body>
+    <h1>Test Dashboard</h1>
+    <p>Time: <span id="time"></span></p>
+    <div>
+        <button onclick="alert('Button clicked')">Test Button</button>
+    </div>
+    <script>
+        document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        console.log('Test dashboard loaded');
+    </script>
+</body>
+</html>
