@@ -203,8 +203,8 @@ function submitQuickBooking(event) {
     .then(data => {
         closeQuickBooking();
         if (data.success) {
-            // Only refresh when appointment is successfully created
-            setTimeout(() => window.location.reload(), 1000);
+            // Immediate refresh when appointment is successfully created
+            window.location.reload();
         } else {
             alert(data.message);
         }
@@ -249,7 +249,7 @@ function submitEditAppointment(event) {
     .then(data => {
         closeEditAppointment();
         if (data.success) {
-            setTimeout(() => window.location.reload(), 1000);
+            window.location.reload();
         } else {
             alert(data.message);
         }
@@ -281,7 +281,7 @@ function completeAppointment() {
     })
     .then(() => {
         closeEditAppointment();
-        setTimeout(() => window.location.reload(), 1000);
+        window.location.reload();
     });
 }
 
@@ -294,9 +294,26 @@ function cancelAppointment() {
         })
         .then(() => {
             closeEditAppointment();
-            setTimeout(() => window.location.reload(), 1000);
+            window.location.reload();
         });
     }
 }
+
+// Refresh checker for new bookings
+console.log('Setting up refresh checker for dashboard');
+let lastCheck = Date.now() / 1000;
+setInterval(() => {
+    fetch(`/api/check-refresh?last_check=${lastCheck}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Refresh check:', data);
+            if (data.refresh_needed) {
+                console.log('New booking detected, refreshing...');
+                window.location.reload();
+            }
+            lastCheck = data.timestamp;
+        })
+        .catch(error => console.log('Refresh check failed:', error));
+}, 1000);
 </script>
 {% endblock %}

@@ -11,42 +11,51 @@ import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import json
+from sse_starlette.sse import EventSourceResponse
+from contextlib import asynccontextmanager
 
 def check_admin_auth(request: Request, admin_logged_in: str = Cookie(None)):
     if admin_logged_in != "true":
         return RedirectResponse(url="/admin/login", status_code=303)
     return True
 
-app = FastAPI(title="MINORE BARBER")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    scheduler.start()
+    print("Keep-alive active during business hours (10 AM - 8 PM)")
+    print("MINORE BARBER - Ready for appointments!")
+    yield
+    # Shutdown
+    scheduler.shutdown()
+
+app = FastAPI(title="MINORE BARBER", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Simple refresh flag
+last_booking_time = 0
 
 # Auto-refresh disabled
 
 # Create tables and ensure initial data
 models.Base.metadata.create_all(bind=models.engine)
 
-# Ensure initial data exists
+# Ensure initial data exists only if database is empty
 try:
     from sqlalchemy.orm import sessionmaker
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=models.engine)
     db = SessionLocal()
     
-    # Check if we have any barbers, if not, add default ones
-    if not crud.get_barbers(db):
-        default_barbers = ["Luca", "Michele", "Raffaele", "Abel", "Wendy", "Sergio"]
-        for barber_name in default_barbers:
-            crud.create_barber(db, barber_name)
-    
-    # Check if we have any services, if not, add default ones
+    # Only add default services if none exist
     if not crud.get_services(db):
         default_services = [
-            ("Classic Haircut", "Traditional scissor cut with styling", 30, 25.00),
-            ("Beard Trim", "Professional beard shaping and trimming", 20, 15.00),
-            ("Hair + Beard", "Complete grooming package", 45, 35.00),
-            ("Shampoo & Style", "Hair wash and professional styling", 25, 20.00),
-            ("Buzz Cut", "Short clipper cut all around", 15, 18.00)
+            ("Corte de pelo / Haircut", "Traditional scissor cut with styling", 30, 20.00),
+            ("Arreglado Barba / Beard Trim", "Professional beard shaping and trimming", 30, 12.00),
+            ("Corte + Barba Ritual / Haircut + Beard Ritual", "Complete grooming package", 60, 34.00),
+            ("Corte Barba Express / Beard Trim Express", "Quick beard trim", 30, 25.00),
+            ("Ritual Barba / Beard Ritual", "Full beard treatment", 30, 14.00)
         ]
         for service_name, description, duration, price in default_services:
             crud.create_service(db, service_name, duration, price, description)
@@ -82,15 +91,7 @@ scheduler.add_job(
     replace_existing=True
 )
 
-@app.on_event("startup")
-async def startup_event():
-    scheduler.start()
-    print("Keep-alive active during business hours (10 AM - 8 PM)")
-    print("MINORE BARBER - Ready for appointments!")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    scheduler.shutdown()
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -127,7 +128,11 @@ async def create_appointment(
 ):
     try:
         appointment = crud.create_appointment(db, client_name, "", service_id, barber_id, appointment_time)
-        # Trigger dashboard refresh for admin
+        # Update refresh flag
+        global last_booking_time
+        import time
+        last_booking_time = time.time()
+        print(f"New booking created! Updated last_booking_time to {last_booking_time}")
         return RedirectResponse(url="/success", status_code=303)
     except ValueError:
         services = crud.get_services(db)
@@ -274,6 +279,9 @@ async def add_manual_appointment(
     try:
         # Admin can create appointments at any time - bypass time validation
         crud.create_appointment_admin(db, client_name, "", service_id, barber_id, appointment_time)
+        # Trigger dashboard refresh
+        from refresh_trigger import trigger_dashboard_refresh
+        trigger_dashboard_refresh()
         return {"success": True, "message": f"Appointment added for {client_name}"}
     except ValueError:
         return {"success": False, "message": "Time slot already taken"}
@@ -353,7 +361,12 @@ async def get_available_times(barber_id: int, service_id: int, db: Session = Dep
         }
     )
 
-# SSE endpoint removed - no auto refresh
+@app.get("/api/check-refresh")
+async def check_refresh(last_check: float = 0):
+    global last_booking_time
+    refresh_needed = last_booking_time > last_check
+    print(f"Refresh check: last_booking={last_booking_time}, last_check={last_check}, refresh_needed={refresh_needed}")
+    return {"refresh_needed": refresh_needed, "timestamp": last_booking_time}
 
 if __name__ == "__main__":
     import os
