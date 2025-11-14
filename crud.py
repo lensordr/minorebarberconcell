@@ -440,6 +440,36 @@ def get_daily_revenue(db: Session, date: str = None):
         "date": date
     }
 
+def get_barber_with_least_appointments(db: Session, service_id: int, appointment_time: str):
+    """Find active barber with least appointments for the day"""
+    appointment_dt = datetime.fromisoformat(appointment_time)
+    today = appointment_dt.date()
+    
+    active_barbers = get_active_barbers(db)
+    barber_counts = []
+    
+    for barber in active_barbers:
+        # Count today's appointments for this barber
+        count = db.query(models.Appointment).filter(
+            models.Appointment.barber_id == barber.id,
+            models.Appointment.appointment_time >= today,
+            models.Appointment.appointment_time < today + timedelta(days=1),
+            models.Appointment.status != "cancelled"
+        ).count()
+        
+        # Check if this barber has availability for the requested time
+        available_times = get_available_times_for_service(db, barber.id, service_id)
+        requested_time = appointment_dt.strftime("%H:%M")
+        
+        if requested_time in available_times:
+            barber_counts.append((barber.id, count))
+    
+    if not barber_counts:
+        return None
+    
+    # Return barber with least appointments
+    return min(barber_counts, key=lambda x: x[1])[0]
+
 def get_weekly_revenue(db: Session, date: str = None):
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')

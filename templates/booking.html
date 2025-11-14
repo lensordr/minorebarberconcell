@@ -34,6 +34,7 @@
             <label for="barber_id">Barber</label>
             <select id="barber_id" name="barber_id" required>
                 <option value="">Select a barber</option>
+                <option value="random">Aleatorio (Random)</option>
                 {% for barber in barbers %}
                 <option value="{{ barber.id }}">{{ barber.name }}</option>
                 {% endfor %}
@@ -63,21 +64,41 @@ function updateAvailableTimes() {
         timeSelect.innerHTML = '<option value="">Loading times...</option>';
         timeSelect.disabled = true;
         
-        fetch(`/api/available-times/${barberId}/${serviceId}?t=${Date.now()}`)
-            .then(response => response.json())
-            .then(times => {
-                timeSelect.innerHTML = '<option value="">Select a time</option>';
-                times.forEach(time => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const datetime = `${today}T${time}:00`;
-                    timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+        if (barberId === 'random') {
+            // For random selection, get times from first active barber as reference
+            const firstBarberId = document.querySelector('#barber_id option[value]:not([value=""]):not([value="random"])').value;
+            fetch(`/api/available-times/${firstBarberId}/${serviceId}?t=${Date.now()}`)
+                .then(response => response.json())
+                .then(times => {
+                    timeSelect.innerHTML = '<option value="">Select a time</option>';
+                    times.forEach(time => {
+                        const today = new Date().toISOString().split('T')[0];
+                        const datetime = `${today}T${time}:00`;
+                        timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+                    });
+                    timeSelect.disabled = false;
+                })
+                .catch(error => {
+                    timeSelect.innerHTML = '<option value="">Error loading times</option>';
+                    timeSelect.disabled = false;
                 });
-                timeSelect.disabled = false;
-            })
-            .catch(error => {
-                timeSelect.innerHTML = '<option value="">Error loading times</option>';
-                timeSelect.disabled = false;
-            });
+        } else {
+            fetch(`/api/available-times/${barberId}/${serviceId}?t=${Date.now()}`)
+                .then(response => response.json())
+                .then(times => {
+                    timeSelect.innerHTML = '<option value="">Select a time</option>';
+                    times.forEach(time => {
+                        const today = new Date().toISOString().split('T')[0];
+                        const datetime = `${today}T${time}:00`;
+                        timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+                    });
+                    timeSelect.disabled = false;
+                })
+                .catch(error => {
+                    timeSelect.innerHTML = '<option value="">Error loading times</option>';
+                    timeSelect.disabled = false;
+                });
+        }
     } else {
         timeSelect.innerHTML = '<option value="">Select service and barber first</option>';
         timeSelect.disabled = true;

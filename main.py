@@ -122,12 +122,24 @@ async def create_appointment(
     request: Request,
     client_name: str = Form(...),
     service_id: int = Form(...),
-    barber_id: int = Form(...),
+    barber_id: str = Form(...),
     appointment_time: str = Form(...),
     db: Session = Depends(get_db)
 ):
     try:
-        appointment = crud.create_appointment(db, client_name, "", service_id, barber_id, appointment_time)
+        # Handle random barber selection
+        if barber_id == "random":
+            actual_barber_id = crud.get_barber_with_least_appointments(db, service_id, appointment_time)
+            if not actual_barber_id:
+                raise ValueError("No available barbers for this time slot")
+        else:
+            actual_barber_id = int(barber_id)
+        
+        appointment = crud.create_appointment(db, client_name, "", service_id, actual_barber_id, appointment_time)
+        # Mark as random appointment if it was randomly assigned
+        if barber_id == "random":
+            appointment.is_random = 1
+            db.commit()
         # Update refresh flag
         global last_booking_time
         import time
@@ -253,6 +265,8 @@ async def checkout_appointment(appointment_id: int, db: Session = Depends(get_db
 async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
     crud.cancel_appointment(db, appointment_id)
     return RedirectResponse(url="/admin/dashboard", status_code=303)
+
+
 
 @app.post("/admin/edit-appointment")
 async def edit_appointment(
