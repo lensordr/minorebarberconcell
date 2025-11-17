@@ -71,10 +71,21 @@ function updateAvailableTimes() {
                 .then(response => response.json())
                 .then(times => {
                     timeSelect.innerHTML = '<option value="">Select a time</option>';
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    
                     times.forEach(time => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const datetime = `${today}T${time}:00`;
-                        timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+                        const [hour, minute] = time.split(':').map(Number);
+                        const timeInMinutes = hour * 60 + minute;
+                        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+                        
+                        // Only show times that are in the future
+                        if (timeInMinutes > currentTimeInMinutes) {
+                            const today = new Date().toISOString().split('T')[0];
+                            const datetime = `${today}T${time}:00`;
+                            timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+                        }
                     });
                     timeSelect.disabled = false;
                 })
@@ -87,10 +98,21 @@ function updateAvailableTimes() {
                 .then(response => response.json())
                 .then(times => {
                     timeSelect.innerHTML = '<option value="">Select a time</option>';
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    
                     times.forEach(time => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const datetime = `${today}T${time}:00`;
-                        timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+                        const [hour, minute] = time.split(':').map(Number);
+                        const timeInMinutes = hour * 60 + minute;
+                        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+                        
+                        // Only show times that are in the future
+                        if (timeInMinutes > currentTimeInMinutes) {
+                            const today = new Date().toISOString().split('T')[0];
+                            const datetime = `${today}T${time}:00`;
+                            timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
+                        }
                     });
                     timeSelect.disabled = false;
                 })
