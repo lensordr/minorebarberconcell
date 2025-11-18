@@ -442,8 +442,16 @@ async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Se
         appointment.status = "cancelled"
         db.commit()
         
-        # Send cancellation confirmation email
-        send_cancellation_email(appointment.email, appointment.client_name, appointment.appointment_time, appointment.service.name)
+        # Send cancellation email async
+        import threading
+        def send_cancel_email_async():
+            try:
+                send_cancellation_email(appointment.email, appointment.client_name, appointment.appointment_time, appointment.service.name)
+                print(f"Cancellation email sent to {appointment.email}")
+            except Exception as e:
+                print(f"Cancellation email error: {e}")
+        
+        threading.Thread(target=send_cancel_email_async, daemon=True).start()
         
         return templates.TemplateResponse("cancel_success.html", {"request": request})
     else:
