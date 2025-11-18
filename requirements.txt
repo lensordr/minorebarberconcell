@@ -8,3 +8,4 @@ apscheduler==3.10.4
 aiohttp==3.9.1
 sse-starlette==1.6.5
 python-dotenv==1.0.0
+requests==2.31.0

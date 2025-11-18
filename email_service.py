@@ -4,6 +4,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import secrets
+import requests
+import json
 
 load_dotenv()
 
@@ -12,56 +14,66 @@ def generate_cancel_token():
 
 def send_appointment_email(client_email, client_name, appointment_time, service_name, barber_name, cancel_token):
     try:
-        print(f"Email config: {os.getenv('EMAIL_HOST')}:{os.getenv('EMAIL_PORT')}")
-        print(f"From: {os.getenv('EMAIL_FROM')} To: {client_email}")
-        
-        msg = MIMEMultipart()
-        msg['From'] = os.getenv('EMAIL_FROM')
-        msg['To'] = client_email
-        msg['Subject'] = "MINORE BARBER - Appointment Confirmation"
-        
         cancel_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/cancel-appointment/{cancel_token}"
         
         body = f"""
-        Hello {client_name},
+Hello {client_name},
 
-        Your appointment has been confirmed at MINORE BARBER!
+Your appointment has been confirmed at MINORE BARBER!
 
-        📅 APPOINTMENT DETAILS:
-        • Service: {service_name}
-        • Barber: {barber_name}
-        • Date & Time: {appointment_time.strftime('%A, %B %d, %Y at %I:%M %p')}
+📅 APPOINTMENT DETAILS:
+• Service: {service_name}
+• Barber: {barber_name}
+• Date & Time: {appointment_time.strftime('%A, %B %d, %Y at %I:%M %p')}
 
-        📍 LOCATION:
-        MINORE BARBER
-        Calle Mallorca 233
+📍 LOCATION:
+MINORE BARBER
+Calle Mallorca 233
 
-        ❌ NEED TO CANCEL?
-        Click here to cancel: {cancel_url}
+❌ NEED TO CANCEL?
+Click here to cancel: {cancel_url}
 
-        📞 QUESTIONS?
-        Call us or reply to this email.
+📞 QUESTIONS?
+Call us or reply to this email.
 
-        We look forward to seeing you!
-        
-        Best regards,
-        MINORE BARBER Team
+We look forward to seeing you!
+
+Best regards,
+MINORE BARBER Team
         """
         
-        msg.attach(MIMEText(body, 'plain'))
+        # Use SendGrid HTTP API instead of SMTP
+        api_key = os.getenv('EMAIL_PASSWORD')  # SendGrid API key
         
-        print("Connecting to SMTP...")
-        server = smtplib.SMTP(os.getenv('EMAIL_HOST'), int(os.getenv('EMAIL_PORT')))
-        print("Starting TLS...")
-        server.starttls()
-        print(f"Logging in with user: {os.getenv('EMAIL_USER')}")
-        server.login(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASSWORD'))
-        print("Sending message...")
-        server.send_message(msg)
-        server.quit()
-        print("Email sent successfully!")
+        data = {
+            "personalizations": [{
+                "to": [{"email": client_email}],
+                "subject": "MINORE BARBER - Appointment Confirmation"
+            }],
+            "from": {"email": os.getenv('EMAIL_FROM')},
+            "content": [{"type": "text/plain", "value": body}]
+        }
         
-        return True
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        print(f"Sending via SendGrid API to {client_email}")
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers=headers,
+            data=json.dumps(data)
+        )
+        
+        print(f"SendGrid API response: {response.status_code}")
+        if response.status_code == 202:
+            print("Email sent successfully via SendGrid API!")
+            return True
+        else:
+            print(f"SendGrid API error: {response.text}")
+            return False
+            
     except Exception as e:
         print(f"Email error: {e}")
         import traceback
