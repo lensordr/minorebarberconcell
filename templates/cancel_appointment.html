@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel Appointment - MINORE BARBER{% endblock %}
+
+{% block content %}
+<div class="cancel-container">
+    {% if appointment %}
+    <div class="cancel-form">
+        <h2>Cancel Appointment</h2>
+        <div class="appointment-details">
+            <h3>Appointment Details:</h3>
+            <p><strong>Name:</strong> {{ appointment.client_name }}</p>
+            <p><strong>Service:</strong> {{ appointment.service.name }}</p>
+            <p><strong>Barber:</strong> {{ appointment.barber.name }}</p>
+            <p><strong>Date & Time:</strong> {{ appointment.appointment_time.strftime('%A, %B %d, %Y at %I:%M %p') }}</p>
+        </div>
+        
+        <div class="cancel-warning">
+            <p>⚠️ Are you sure you want to cancel this appointment?</p>
+            <p>This action cannot be undone.</p>
+        </div>
+        
+        <div class="cancel-actions">
+            <form method="POST" action="/cancel-appointment/{{ cancel_token }}/confirm" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Yes, Cancel Appointment</button>
+            </form>
+            <a href="/book" class="btn btn-secondary">No, Keep Appointment</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="error-message">
+        <h2>Appointment Not Found</h2>
+        <p>This appointment may have already been cancelled or the link is invalid.</p>
+        <a href="/book" class="btn btn-primary">Book New Appointment</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.cancel-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+}
+
+.cancel-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.appointment-details {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}
+
+.cancel-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.cancel-actions {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.cancel-actions .btn {
+    margin: 0 0.5rem;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+</style>
+{% endblock %}

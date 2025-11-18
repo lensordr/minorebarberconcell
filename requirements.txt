@@ -7,3 +7,4 @@ qrcode[pil]==7.4.2
 apscheduler==3.10.4
 aiohttp==3.9.1
 sse-starlette==1.6.5
+python-dotenv==1.0.0

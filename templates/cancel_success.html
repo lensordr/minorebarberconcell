@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment Cancelled - MINORE BARBER{% endblock %}
+
+{% block content %}
+<div class="cancel-success">
+    <div class="success-icon">✓</div>
+    <h2>Appointment Cancelled</h2>
+    <p>Your appointment has been successfully cancelled.</p>
+    <p>We're sorry to see you go, but we understand plans change.</p>
+    
+    <div class="next-steps">
+        <h3>What's Next?</h3>
+        <p>• You will receive a cancellation confirmation email</p>
+        <p>• Feel free to book a new appointment anytime</p>
+        <p>• Contact us if you have any questions</p>
+    </div>
+    
+    <div class="actions">
+        <a href="/book" class="btn btn-primary">Book New Appointment</a>
+        <a href="/" class="btn btn-secondary">Back to Home</a>
+    </div>
+</div>
+
+<style>
+.cancel-success {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    text-align: center;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.success-icon {
+    font-size: 4rem;
+    color: #28a745;
+    margin-bottom: 1rem;
+}
+
+.next-steps {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 5px;
+    margin: 2rem 0;
+    text-align: left;
+}
+
+.next-steps h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.next-steps p {
+    margin: 0.5rem 0;
+}
+
+.actions {
+    margin-top: 2rem;
+}
+
+.actions .btn {
+    margin: 0 0.5rem;
+}
+</style>
+{% endblock %}

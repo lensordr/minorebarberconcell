@@ -9,7 +9,9 @@ A modern, minimalist web-based appointment system for barbershops.
 - ⏰ Same-day appointment scheduling
 - 💇 Service selection with pricing
 - 👨‍💼 Barber selection
-- 📞 Contact information collection
+- 📞 Contact information collection (email + phone)
+- 📧 Email confirmation with appointment details
+- ❌ Client-side appointment cancellation via email link
 
 ### Admin Features
 - 📊 Real-time appointment dashboard (ordered by time)
@@ -32,7 +34,17 @@ pip install -r requirements.txt
 python setup.py
 ```
 
-3. **Run the application**
+3. **Configure email (optional)**
+```bash
+python setup_email.py
+```
+
+4. **Test email configuration (optional)**
+```bash
+python test_email.py
+```
+
+5. **Run the application**
 ```bash
 python main.py
 ```
@@ -61,11 +73,13 @@ MinoreBarbershop/
 
 ### For Customers
 1. Scan QR code or visit booking URL
-2. Enter name and phone number
+2. Enter name, email, and phone number
 3. Select desired service
 4. Choose preferred barber
 5. Pick available time slot
 6. Confirm appointment
+7. Receive email confirmation with cancellation link
+8. Cancel via email link if needed
 
 ### For Admin
 1. Login to admin dashboard
@@ -97,6 +111,13 @@ MinoreBarbershop/
 ### 📱 QR Code Access
 - Auto-generated QR code for easy customer access
 - Points directly to booking page
+
+### 📧 Email Notifications
+- Automatic appointment confirmation emails
+- Professional email templates with appointment details
+- Client-side cancellation via secure email links
+- Cancellation confirmation emails
+- Easy email configuration setup
 
 ## Default Data
 - **Barbers**: Marco Silva, Antonio Rodriguez, Carlos Mendez

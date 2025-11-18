@@ -40,6 +40,8 @@ class Appointment(Base):
     custom_price = Column(Float, default=None)  # Override service price
     custom_duration = Column(Integer, default=None)  # Override service duration
     is_random = Column(Integer, default=0)  # 1 if randomly assigned
+    email = Column(String, default="")
+    cancel_token = Column(String, default="")
     
     barber = relationship("Barber", back_populates="appointments")
     service = relationship("Service", back_populates="appointments")

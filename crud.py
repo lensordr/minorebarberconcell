@@ -11,6 +11,12 @@ def get_active_barbers(db: Session):
 def get_services(db: Session):
     return db.query(models.Service).all()
 
+def get_service_by_id(db: Session, service_id: int):
+    return db.query(models.Service).filter(models.Service.id == service_id).first()
+
+def get_barber_by_id(db: Session, barber_id: int):
+    return db.query(models.Barber).filter(models.Barber.id == barber_id).first()
+
 def create_barber(db: Session, name: str):
     barber = models.Barber(name=name)
     db.add(barber)
@@ -43,7 +49,7 @@ def delete_service(db: Session, service_id: int):
         db.commit()
     return service
 
-def create_appointment(db: Session, client_name: str, phone: str, service_id: int, barber_id: int, appointment_time: str):
+def create_appointment(db: Session, client_name: str, email: str, phone: str, service_id: int, barber_id: int, appointment_time: str):
     appointment_dt = datetime.fromisoformat(appointment_time)
     now = datetime.now()
     
@@ -86,12 +92,17 @@ def create_appointment(db: Session, client_name: str, phone: str, service_id: in
         if (appointment_dt < existing_end and appointment_end > existing.appointment_time):
             raise ValueError("Time slot conflicts with existing appointment")
     
+    from email_service import generate_cancel_token
+    cancel_token = generate_cancel_token()
+    
     appointment = models.Appointment(
         client_name=client_name,
+        email=email,
         phone=phone,
         service_id=service_id,
         barber_id=barber_id,
-        appointment_time=appointment_dt
+        appointment_time=appointment_dt,
+        cancel_token=cancel_token
     )
     db.add(appointment)
     db.commit()
@@ -176,21 +187,32 @@ def get_available_times_for_service(db: Session, barber_id: int, service_id: int
     
     service_duration = service.duration
     
-    start_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.start_hour))
-    end_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.end_hour))
-    
-    # Calculate next available slot based on current time
-    current_hour = now.hour
-    current_minute = now.minute
-    
-    if current_minute < 30:
-        next_hour = current_hour
-        next_minute = 30
+    # If it's after business hours, show tomorrow's slots
+    if now.hour >= schedule.end_hour:
+        today = today + timedelta(days=1)
+        start_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.start_hour))
+        end_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.end_hour))
+        earliest_time = start_time
     else:
-        next_hour = current_hour + 1
-        next_minute = 0
-    
-    earliest_time = datetime.combine(today, datetime.min.time().replace(hour=next_hour, minute=next_minute))
+        start_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.start_hour))
+        end_time = datetime.combine(today, datetime.min.time().replace(hour=schedule.end_hour))
+        
+        # Calculate next available slot based on current time
+        current_hour = now.hour
+        current_minute = now.minute
+        
+        if current_minute < 30:
+            next_hour = current_hour
+            next_minute = 30
+        else:
+            next_hour = current_hour + 1
+            next_minute = 0
+        
+        # If we're before business hours, start from business hours
+        if next_hour < schedule.start_hour:
+            earliest_time = start_time
+        else:
+            earliest_time = datetime.combine(today, datetime.min.time().replace(hour=next_hour, minute=next_minute))
     
     # Get existing appointments for this barber today (exclude cancelled)
     existing_appointments = db.query(models.Appointment).filter(

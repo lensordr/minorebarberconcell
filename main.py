@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import models, crud
 from database import get_db
+from email_service import send_appointment_email, generate_cancel_token, send_cancellation_email
 import uvicorn
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -121,6 +122,8 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
 async def create_appointment(
     request: Request,
     client_name: str = Form(...),
+    client_email: str = Form(...),
+    client_phone: str = Form(...),
     service_id: int = Form(...),
     barber_id: str = Form(...),
     appointment_time: str = Form(...),
@@ -135,11 +138,16 @@ async def create_appointment(
         else:
             actual_barber_id = int(barber_id)
         
-        appointment = crud.create_appointment(db, client_name, "", service_id, actual_barber_id, appointment_time)
+        appointment = crud.create_appointment(db, client_name, client_email, client_phone, service_id, actual_barber_id, appointment_time)
         # Mark as random appointment if it was randomly assigned
         if barber_id == "random":
             appointment.is_random = 1
             db.commit()
+        # Send email
+        service = crud.get_service_by_id(db, service_id)
+        barber = crud.get_barber_by_id(db, actual_barber_id)
+        send_appointment_email(client_email, client_name, appointment.appointment_time, service.name, barber.name, appointment.cancel_token)
+        
         # Update refresh flag
         global last_booking_time
         import time
@@ -374,6 +382,41 @@ async def get_available_times(barber_id: int, service_id: int, db: Session = Dep
             "Expires": "0"
         }
     )
+
+@app.get("/cancel-appointment/{cancel_token}")
+async def cancel_appointment_by_token(request: Request, cancel_token: str, db: Session = Depends(get_db)):
+    appointment = db.query(models.Appointment).filter(
+        models.Appointment.cancel_token == cancel_token,
+        models.Appointment.status == "scheduled"
+    ).first()
+    
+    return templates.TemplateResponse("cancel_appointment.html", {
+        "request": request,
+        "appointment": appointment,
+        "cancel_token": cancel_token
+    })
+
+@app.post("/cancel-appointment/{cancel_token}/confirm")
+async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Session = Depends(get_db)):
+    appointment = db.query(models.Appointment).filter(
+        models.Appointment.cancel_token == cancel_token,
+        models.Appointment.status == "scheduled"
+    ).first()
+    
+    if appointment:
+        appointment.status = "cancelled"
+        db.commit()
+        
+        # Send cancellation confirmation email
+        send_cancellation_email(appointment.email, appointment.client_name, appointment.appointment_time, appointment.service.name)
+        
+        return templates.TemplateResponse("cancel_success.html", {"request": request})
+    else:
+        return templates.TemplateResponse("cancel_appointment.html", {
+            "request": request,
+            "appointment": None,
+            "cancel_token": cancel_token
+        })
 
 @app.get("/api/check-refresh")
 async def check_refresh(last_check: float = 0):
