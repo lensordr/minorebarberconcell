@@ -43,6 +43,27 @@ last_booking_time = 0
 # Create tables and ensure initial data
 models.Base.metadata.create_all(bind=models.engine)
 
+# Run database migration for email columns
+try:
+    import sqlite3
+    conn = sqlite3.connect("barbershop.db")
+    cursor = conn.cursor()
+    
+    # Check if email column exists
+    cursor.execute("PRAGMA table_info(appointments)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'email' not in columns:
+        cursor.execute("ALTER TABLE appointments ADD COLUMN email TEXT DEFAULT ''")
+    
+    if 'cancel_token' not in columns:
+        cursor.execute("ALTER TABLE appointments ADD COLUMN cancel_token TEXT DEFAULT ''")
+    
+    conn.commit()
+    conn.close()
+except Exception as e:
+    print(f"Migration error: {e}")
+
 # Ensure initial data exists only if database is empty
 try:
     from sqlalchemy.orm import sessionmaker
