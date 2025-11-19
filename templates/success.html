@@ -7,20 +7,42 @@
     <div class="success-icon">✓</div>
     <h2>Appointment Confirmed!</h2>
     <p>Your appointment has been successfully booked.</p>
-    <p>📧 A confirmation email with appointment details and cancellation link has been sent to your email address.</p>
-    <p><strong>⚠️ Please check your SPAM/JUNK folder if you don't see the email in your inbox.</strong></p>
+    <div id="email-confirmation" style="display: none;">
+        <p>📧 A confirmation email with appointment details and cancellation link has been sent to your email address.</p>
+        <p><strong>⚠️ Please check your SPAM/JUNK folder if you don't see the email in your inbox.</strong></p>
+    </div>
+    <div id="no-email-confirmation" style="display: none;">
+        <p>📝 Your appointment has been confirmed! Since no email was provided, you won't receive email notifications.</p>
+    </div>
     <p>We'll see you soon at MINORE BARBER!</p>
     
     <div class="next-steps">
         <h3>What's Next?</h3>
-        <p>• Check your email (including spam folder) for appointment details</p>
-        <p>• Add our email to your contacts to avoid spam</p>
-        <p>• Save the cancellation link if you need to reschedule</p>
+        <p id="email-steps" style="display: none;">• Check your email (including spam folder) for appointment details</p>
+        <p id="email-contacts" style="display: none;">• Add our email to your contacts to avoid spam</p>
+        <p id="email-cancel" style="display: none;">• Save the cancellation link if you need to reschedule</p>
+        <p id="no-email-steps" style="display: none;">• Contact us directly if you need to cancel or reschedule</p>
         <p>• Arrive 5 minutes early for your appointment</p>
     </div>
     
     <a href="/book" class="btn btn-secondary">Book Another</a>
 </div>
+
+<script>
+// Show appropriate message based on whether email was provided
+const urlParams = new URLSearchParams(window.location.search);
+const hasEmail = urlParams.get('email') === 'true';
+
+if (hasEmail) {
+    document.getElementById('email-confirmation').style.display = 'block';
+    document.getElementById('email-steps').style.display = 'block';
+    document.getElementById('email-contacts').style.display = 'block';
+    document.getElementById('email-cancel').style.display = 'block';
+} else {
+    document.getElementById('no-email-confirmation').style.display = 'block';
+    document.getElementById('no-email-steps').style.display = 'block';
+}
+</script>
 
 <style>
 .next-steps {

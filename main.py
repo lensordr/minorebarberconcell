@@ -164,31 +164,32 @@ async def create_appointment(
         if barber_id == "random":
             appointment.is_random = 1
             db.commit()
-        # Get data before async thread
-        service = crud.get_service_by_id(db, service_id)
-        barber = crud.get_barber_by_id(db, actual_barber_id)
-        
-        # Test SendGrid email with async
-        import threading
-        import os
-        def send_email_async():
-            try:
-                print(f"SendGrid: {os.getenv('EMAIL_HOST')}:{os.getenv('EMAIL_PORT')}")
-                print(f"User: {os.getenv('EMAIL_USER')}")
-                print(f"Sending to: {client_email}")
-                success = send_appointment_email(client_email, client_name, appointment.appointment_time, service.name, barber.name, appointment.cancel_token)
-                print(f"SendGrid result: {success}")
-            except Exception as e:
-                print(f"SendGrid error: {e}")
-        
-        threading.Thread(target=send_email_async, daemon=True).start()
+        # Send email only if provided
+        if client_email and client_email.strip():
+            service = crud.get_service_by_id(db, service_id)
+            barber = crud.get_barber_by_id(db, actual_barber_id)
+            
+            import threading
+            def send_email_async():
+                try:
+                    print(f"Sending confirmation email to: {client_email}")
+                    success = send_appointment_email(client_email, client_name, appointment.appointment_time, service.name, barber.name, appointment.cancel_token)
+                    print(f"Email result: {success}")
+                except Exception as e:
+                    print(f"Email error: {e}")
+            
+            threading.Thread(target=send_email_async, daemon=True).start()
+        else:
+            print(f"No email provided - appointment created without email notification")
         
         # Update refresh flag
         global last_booking_time
         import time
         last_booking_time = time.time()
         print(f"New booking created! Updated last_booking_time to {last_booking_time}")
-        return RedirectResponse(url="/success", status_code=303)
+        # Redirect with email parameter
+        email_param = "true" if client_email and client_email.strip() else "false"
+        return RedirectResponse(url=f"/success?email={email_param}", status_code=303)
     except ValueError:
         services = crud.get_services(db)
         barbers = crud.get_barbers(db)
