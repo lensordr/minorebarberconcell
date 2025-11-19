@@ -53,14 +53,16 @@
                          style="cursor: pointer; height: {{ slot.span_rows * 60 - 4 }}px; margin-bottom: -{{ (slot.span_rows - 1) * 60 }}px; z-index: 10; position: relative;">
                         <div class="client-name">{{ appointment.client_name }}{% if appointment.is_random %} 🎲{% endif %}</div>
                         <div class="service-code">
-                            {% if "Corte + Barba" in appointment.service.name or "Haircut + Beard" in appointment.service.name %}
+                            {% if "Corte + Barba Ritual" in appointment.service.name %}
                                 C+B
-                            {% elif "Corte" in appointment.service.name or "Haircut" in appointment.service.name %}
+                            {% elif "Corte de pelo" in appointment.service.name %}
                                 C
-                            {% elif "Barba" in appointment.service.name or "Beard" in appointment.service.name %}
-                                B
-                            {% elif "Ritual" in appointment.service.name %}
-                                R
+                            {% elif "Arreglado Barba" in appointment.service.name %}
+                                AB
+                            {% elif "Corte Barba Express" in appointment.service.name %}
+                                CBX
+                            {% elif "Ritual Barba" in appointment.service.name %}
+                                RB
                             {% else %}
                                 {{ appointment.service.name[:3] }}
                             {% endif %}
