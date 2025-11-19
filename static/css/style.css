@@ -420,6 +420,16 @@ main {
     color: #1a1a1a;
 }
 
+.service-code {
+    font-size: 0.7rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: #333;
+    text-align: center;
+}
+
 .service-name {
     font-size: 0.8rem;
     color: #666;
