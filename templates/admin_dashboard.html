@@ -53,16 +53,16 @@
                          style="cursor: pointer; height: {{ slot.span_rows * 60 - 4 }}px; margin-bottom: -{{ (slot.span_rows - 1) * 60 }}px; z-index: 10; position: relative;">
                         <div class="client-name">{{ appointment.client_name }}{% if appointment.is_random %} 🎲{% endif %}</div>
                         <div class="service-code">
-                            {% if "Corte + Barba Ritual" in appointment.service.name %}
-                                C+B
-                            {% elif "Corte de pelo" in appointment.service.name %}
+                            {% if "Haircut" in appointment.service.name and "Beard" in appointment.service.name and "Ritual" in appointment.service.name %}
+                                C+B-R
+                            {% elif "Haircut" in appointment.service.name and "Beard" in appointment.service.name and "Express" in appointment.service.name %}
+                                C+B-E
+                            {% elif "Haircut" in appointment.service.name and "Beard" not in appointment.service.name %}
                                 C
-                            {% elif "Arreglado Barba" in appointment.service.name %}
-                                AB
-                            {% elif "Corte y Barba Express" in appointment.service.name or "Corte Barba Express" in appointment.service.name %}
-                                CBX
-                            {% elif "Ritual Barba" in appointment.service.name %}
-                                RB
+                            {% elif "Beard" in appointment.service.name and "Trim" in appointment.service.name and "Express" in appointment.service.name %}
+                                BE
+                            {% elif "Beard" in appointment.service.name and "Trim" in appointment.service.name and "Ritual" in appointment.service.name %}
+                                BR
                             {% else %}
                                 {{ appointment.service.name[:3] }}
                             {% endif %}
