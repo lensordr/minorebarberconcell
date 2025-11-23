@@ -126,4 +126,4 @@ MinoreBarbershop/
 - **Admin Login**: admin / minore123
 
 ---
-Built for MINORE BARBERSHOP
+Built for MINORE BARBERSHOP# Force redeploy
