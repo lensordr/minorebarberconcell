@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Location - MINORE BARBER{% endblock %}
+
+{% block content %}
+<div class="location-selector">
+    <h2>Choose Your Location</h2>
+    <p>Select the MINORE BARBER location where you'd like to book your appointment</p>
+    
+    <div class="locations-grid">
+        <a href="https://minore-barbershop.onrender.com/book" class="location-card">
+            <div class="location-icon">📍</div>
+            <h3>Minore Barber Mallorca</h3>
+            <p>Carrer de Mallorca, 233<br>Barcelona</p>
+            <div class="book-btn">Book Now</div>
+        </a>
+        
+        <a href="https://minorebarbeconcell.onrender.com/book" class="location-card">
+            <div class="location-icon">📍</div>
+            <h3>Minore Barber Consell de Cent</h3>
+            <p>Carrer del Consell de Cent, 250<br>Barcelona</p>
+            <div class="book-btn">Book Now</div>
+        </a>
+    </div>
+</div>
+{% endblock %}

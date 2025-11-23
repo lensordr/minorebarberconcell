@@ -100,6 +100,10 @@ scheduler.add_job(
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 
+@app.get("/locations", response_class=HTMLResponse)
+async def location_selector(request: Request):
+    return templates.TemplateResponse("location_selector.html", {"request": request})
+
 @app.get("/test")
 async def test_page():
     with open("test.html", "r") as f:

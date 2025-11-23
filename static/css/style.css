@@ -1324,3 +1324,107 @@ main {
 .appointment-random .client-name {
     color: white !important;
 }
+
+/* Location Selector */
+.location-selector {
+    text-align: center;
+    background: #2a2529;
+    padding: 3rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border: 1px solid #333;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.location-selector h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #fbcc93;
+}
+
+.location-selector p {
+    font-size: 1.2rem;
+    color: #fbcc93;
+    opacity: 0.8;
+    margin-bottom: 3rem;
+}
+
+.locations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.location-card {
+    background: #1d1a1c;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 2px solid #333;
+    text-decoration: none;
+    color: #fbcc93;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.location-card:hover {
+    border-color: #fbcc93;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(251, 204, 147, 0.2);
+}
+
+.location-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.location-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #fbcc93;
+}
+
+.location-card p {
+    font-size: 1rem;
+    opacity: 0.8;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
+}
+
+.book-btn {
+    background: #fbcc93;
+    color: #1d1a1c;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.location-card:hover .book-btn {
+    background: #f4b876;
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .location-selector {
+        padding: 2rem 1rem;
+    }
+    
+    .location-selector h2 {
+        font-size: 2rem;
+    }
+    
+    .locations-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .location-card {
+        padding: 1.5rem;
+    }
+}
