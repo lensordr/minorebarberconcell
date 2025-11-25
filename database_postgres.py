@@ -2,20 +2,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 
-# PostgreSQL connection using environment variables
-DATABASE_URL = os.environ.get(
-    'DATABASE_URL', 
-    f"postgresql+psycopg://postgres:{os.environ.get('DB_PASSWORD', 'Minorebarber2025!')}@db.jljpkwssshgpwqhahtyj.supabase.co:5432/postgres"
-)
+# PostgreSQL connection
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'Minorebarber2025!')
+DATABASE_URL = f"postgresql+psycopg://postgres:{DB_PASSWORD}@db.jljpkwssshgpwqhahtyj.supabase.co:5432/postgres"
+
+print(f"Connecting to: postgresql+psycopg://postgres:***@db.jljpkwssshgpwqhahtyj.supabase.co:5432/postgres")
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    connect_args={
-        "connect_timeout": 10,
-        "application_name": "minore_barbershop"
-    }
+    echo=True,  # Debug SQL
+    pool_pre_ping=True
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
