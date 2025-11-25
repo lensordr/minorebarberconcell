@@ -9,7 +9,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 # PostgreSQL connection string for Supabase
 DATABASE_URL = os.environ.get(
     'DATABASE_URL', 
-    'postgresql+asyncpg://postgres:Minorebarber2025!@db.jljpkwssshgpwqhahtyj.supabase.co:5432/postgres'
+    'postgresql://postgres:Minorebarber2025!@db.jljpkwssshgpwqhahtyj.supabase.co:5432/postgres'
 )
 
 engine = create_engine(DATABASE_URL)
