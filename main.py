@@ -314,12 +314,19 @@ async def add_manual_appointment(
     try:
         # Admin can create appointments at any time - bypass time validation
         crud.create_appointment_admin(db, client_name, "", service_id, barber_id, appointment_time)
+        
         # Trigger dashboard refresh
-        from refresh_trigger import trigger_dashboard_refresh
-        trigger_dashboard_refresh()
+        global last_booking_time
+        import time
+        last_booking_time = time.time()
+        print(f"Admin appointment created! Updated last_booking_time to {last_booking_time}")
+        
         return {"success": True, "message": f"Appointment added for {client_name}"}
-    except ValueError:
-        return {"success": False, "message": "Time slot already taken"}
+    except ValueError as e:
+        return {"success": False, "message": str(e)}
+    except Exception as e:
+        print(f"Error creating appointment: {e}")
+        return {"success": False, "message": "Error creating appointment"}
 
 @app.post("/admin/update-schedule")
 async def update_schedule(
