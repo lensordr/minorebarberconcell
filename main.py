@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-import models, crud
+import models, crud, os
 from database_postgres import get_db
 from email_service import send_appointment_email, generate_cancel_token, send_cancellation_email
 import uvicorn
