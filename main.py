@@ -131,8 +131,12 @@ async def book_appointment_concell(request: Request, db: Session = Depends(get_d
     })
 
 @app.get("/book", response_class=HTMLResponse)
-async def book_appointment_redirect(request: Request):
-    return RedirectResponse(url="/locations", status_code=303)
+async def book_appointment_redirect(request: Request, db: Session = Depends(get_db)):
+    default_location = int(os.environ.get('DEFAULT_LOCATION', 1))
+    if default_location == 1:
+        return RedirectResponse(url="/mallorca/book", status_code=303)
+    else:
+        return RedirectResponse(url="/concell/book", status_code=303)
 
 @app.post("/mallorca/book")
 async def create_appointment_mallorca(
@@ -252,7 +256,9 @@ async def admin_login_post(username: str = Form(...), password: str = Form(...))
 
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
-async def admin_dashboard(request: Request, location: int = 1, db: Session = Depends(get_db)):
+async def admin_dashboard(request: Request, location: int = None, db: Session = Depends(get_db)):
+    if location is None:
+        location = int(os.environ.get('DEFAULT_LOCATION', 1))
     print(f"Dashboard accessed at {datetime.now()} for location {location}")
     appointments = crud.get_today_appointments_ordered_by_location(db, location)
     barbers = crud.get_barbers_with_revenue_by_location(db, location)
@@ -467,4 +473,69 @@ async def get_available_times(barber_id: int, service_id: int, db: Session = Dep
 async def cancel_appointment_by_token(request: Request, cancel_token: str, db: Session = Depends(get_db)):
     appointment = db.query(models.Appointment).filter(
         models.Appointment.cancel_token == cancel_token,
-        m
+        models.Appointment.status == "scheduled"
+    ).first()
+    
+    return templates.TemplateResponse("cancel_appointment.html", {
+        "request": request,
+        "appointment": appointment,
+        "cancel_token": cancel_token
+    })
+
+@app.post("/cancel-appointment/{cancel_token}/confirm")
+async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Session = Depends(get_db)):
+    appointment = db.query(models.Appointment).filter(
+        models.Appointment.cancel_token == cancel_token,
+        models.Appointment.status == "scheduled"
+    ).first()
+    
+    if appointment:
+        appointment.status = "cancelled"
+        db.commit()
+        
+        # Trigger dashboard refresh
+        global last_booking_time
+        import time
+        last_booking_time = time.time()
+        print(f"Appointment cancelled! Updated last_booking_time to {last_booking_time}")
+        
+        # Send cancellation email async
+        import threading
+        def send_cancel_email_async():
+            try:
+                send_cancellation_email(appointment.email, appointment.client_name, appointment.appointment_time, appointment.service.name)
+                print(f"Cancellation email sent to {appointment.email}")
+            except Exception as e:
+                print(f"Cancellation email error: {e}")
+        
+        threading.Thread(target=send_cancel_email_async, daemon=True).start()
+        
+        return templates.TemplateResponse("cancel_success.html", {"request": request})
+    else:
+        return templates.TemplateResponse("cancel_appointment.html", {
+            "request": request,
+            "appointment": None,
+            "cancel_token": cancel_token
+        })
+
+@app.get("/api/check-refresh")
+async def check_refresh(last_check: float = 0):
+    global last_booking_time
+    refresh_needed = last_booking_time > last_check
+    print(f"Refresh check: last_booking={last_booking_time}, last_check={last_check}, refresh_needed={refresh_needed}")
+    return {"refresh_needed": refresh_needed, "timestamp": last_booking_time}
+
+@app.get("/export-data")
+async def export_data(db: Session = Depends(get_db)):
+    barbers = db.query(models.Barber).all()
+    services = db.query(models.Service).all()
+    
+    return {
+        "barbers": [{"name": b.name, "active": b.active} for b in barbers],
+        "services": [{"name": s.name, "description": s.description, "duration": s.duration, "price": s.price} for s in services]
+    }
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
