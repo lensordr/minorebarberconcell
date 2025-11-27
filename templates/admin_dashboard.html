@@ -49,7 +49,7 @@
                     {% set appointment = slot.appointment %}
                     {% set duration = appointment.custom_duration or appointment.service.duration %}
                     <div class="appointment-item appointment-{{ appointment.status }}{% if appointment.is_random %} appointment-random{% endif %}" 
-                         onclick="editAppointment({{ appointment.id }}, '{{ appointment.client_name }}', '{{ appointment.service.name }}', {{ appointment.custom_price or appointment.service.price }}, {{ duration }}, '{{ appointment.appointment_time.strftime('%H:%M') }}', '{{ appointment.status }}')" 
+                         onclick="editAppointment({{ appointment.id }}, '{{ appointment.client_name|replace("'", "\\'") }}', '{{ appointment.service.name|replace("'", "\\'") }}', {{ appointment.custom_price or appointment.service.price }}, {{ duration }}, '{{ appointment.appointment_time.strftime('%H:%M') }}', '{{ appointment.status }}')" 
                          style="cursor: pointer; height: {{ slot.span_rows * 60 - 4 }}px; margin-bottom: -{{ (slot.span_rows - 1) * 60 }}px; z-index: 10; position: relative;">
                         <div class="client-name">{{ appointment.client_name }}{% if appointment.is_random %} 🎲{% endif %}</div>
                         <div class="service-code">
