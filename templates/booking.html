@@ -10,7 +10,7 @@
     <div class="error-message">{{ error }}</div>
     {% endif %}
     
-    <form method="POST" action="/book" id="bookingForm">
+    <form method="POST" action="{% if location_id == 1 %}/mallorca/book{% else %}/concell/book{% endif %}" id="bookingForm">
         <div class="form-group">
             <label for="client_name">Your Name</label>
             <input type="text" id="client_name" name="client_name" required>
