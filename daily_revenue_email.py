@@ -6,19 +6,22 @@ import models, crud
 import os
 from database_postgres import SessionLocal
 
-def send_daily_revenue_email():
+async def send_daily_revenue_email():
     """Send daily revenue report via email"""
-    
-    # Email configuration (using existing SendGrid setup)
-    smtp_server = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
-    smtp_port = int(os.environ.get('EMAIL_PORT', '587'))
-    smtp_username = os.environ.get('EMAIL_USER', 'apikey')
-    smtp_password = os.environ.get('EMAIL_PASSWORD', '')
-    from_email = os.environ.get('EMAIL_FROM', 'minorebarbereixample@gmail.com')
-    to_email = "minorebarbereixample@gmail.com"
-    
-    if not smtp_username or not smtp_password:
-        print("Email not configured - skipping daily revenue email")
+    try:
+        # Email configuration (using existing SendGrid setup)
+        smtp_server = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+        smtp_port = int(os.environ.get('EMAIL_PORT', '587'))
+        smtp_username = os.environ.get('EMAIL_USER', 'apikey')
+        smtp_password = os.environ.get('EMAIL_PASSWORD', '')
+        from_email = os.environ.get('EMAIL_FROM', 'minorebarbereixample@gmail.com')
+        to_email = "minorebarbereixample@gmail.com"
+        
+        if not smtp_username or not smtp_password:
+            print("Email not configured - skipping daily revenue email")
+            return
+    except Exception as e:
+        print(f"Email configuration error: {e}")
         return
     
     # Get yesterday's date

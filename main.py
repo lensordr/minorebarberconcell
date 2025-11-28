@@ -28,7 +28,10 @@ async def lifespan(app: FastAPI):
     print("MINORE BARBER - Ready for appointments!")
     yield
     # Shutdown
-    scheduler.shutdown()
+    try:
+        scheduler.shutdown(wait=False)
+    except Exception as e:
+        print(f"Scheduler shutdown error (ignored): {e}")
 
 app = FastAPI(title="MINORE BARBER", lifespan=lifespan)
 
