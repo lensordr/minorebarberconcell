@@ -498,16 +498,21 @@ def cleanup_daily_and_save_revenue(db: Session):
     db.commit()
     return deleted_count
 
-def get_monthly_revenue(db: Session, year: int = None, month: int = None):
+def get_monthly_revenue(db: Session, year: int = None, month: int = None, location_id: int = None):
     if not year or not month:
         today = datetime.now().date()
         year = today.year
         month = today.month
     
-    records = db.query(models.MonthlyRevenue).filter(
+    query = db.query(models.MonthlyRevenue).filter(
         models.MonthlyRevenue.year == year,
         models.MonthlyRevenue.month == month
-    ).all()
+    )
+    
+    if location_id:
+        query = query.join(models.Barber).filter(models.Barber.location_id == location_id)
+    
+    records = query.all()
     
     total_revenue = sum(record.revenue for record in records)
     total_appointments = sum(record.appointments_count for record in records)
@@ -518,13 +523,18 @@ def get_monthly_revenue(db: Session, year: int = None, month: int = None):
         "total_appointments": total_appointments
     }
 
-def get_daily_revenue(db: Session, date: str = None):
+def get_daily_revenue(db: Session, date: str = None, location_id: int = None):
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     
-    records = db.query(models.DailyRevenue).filter(
+    query = db.query(models.DailyRevenue).filter(
         models.DailyRevenue.date == date
-    ).all()
+    )
+    
+    if location_id:
+        query = query.join(models.Barber).filter(models.Barber.location_id == location_id)
+    
+    records = query.all()
     
     total_revenue = sum(record.revenue for record in records)
     total_appointments = sum(record.appointments_count for record in records)
@@ -536,12 +546,16 @@ def get_daily_revenue(db: Session, date: str = None):
         "date": date
     }
 
-def get_barber_with_least_appointments(db: Session, service_id: int, appointment_time: str):
+def get_barber_with_least_appointments(db: Session, service_id: int, appointment_time: str, location_id: int = None):
     """Find active barber with least appointments for the day"""
     appointment_dt = datetime.fromisoformat(appointment_time)
     today = appointment_dt.date()
     
-    active_barbers = get_active_barbers(db)
+    if location_id:
+        active_barbers = get_active_barbers_by_location(db, location_id)
+    else:
+        active_barbers = get_active_barbers(db)
+    
     barber_counts = []
     
     for barber in active_barbers:
@@ -566,7 +580,7 @@ def get_barber_with_least_appointments(db: Session, service_id: int, appointment
     # Return barber with least appointments
     return min(barber_counts, key=lambda x: x[1])[0]
 
-def get_weekly_revenue(db: Session, date: str = None):
+def get_weekly_revenue(db: Session, date: str = None, location_id: int = None):
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     
@@ -576,10 +590,15 @@ def get_weekly_revenue(db: Session, date: str = None):
     end_of_week = start_of_week + timedelta(days=6)
     
     # Get all daily records for the week
-    records = db.query(models.DailyRevenue).filter(
+    query = db.query(models.DailyRevenue).filter(
         models.DailyRevenue.date >= start_of_week.strftime('%Y-%m-%d'),
         models.DailyRevenue.date <= end_of_week.strftime('%Y-%m-%d')
-    ).all()
+    )
+    
+    if location_id:
+        query = query.join(models.Barber).filter(models.Barber.location_id == location_id)
+    
+    records = query.all()
     
     # Group by barber
     barber_totals = {}

@@ -175,7 +175,7 @@ async def create_appointment_helper(
     try:
         # Handle random barber selection
         if barber_id == "random":
-            actual_barber_id = crud.get_barber_with_least_appointments(db, service_id, appointment_time)
+            actual_barber_id = crud.get_barber_with_least_appointments(db, service_id, appointment_time, location_id)
             if not actual_barber_id:
                 raise ValueError("No available barbers for this time slot")
         else:
@@ -418,26 +418,33 @@ async def cleanup_daily(db: Session = Depends(get_db)):
     return RedirectResponse(url="/admin/dashboard", status_code=303)
 
 @app.get("/admin/revenue", response_class=HTMLResponse)
-async def revenue_reports(request: Request, view: str = "monthly", date: str = None, revenue_logged_in: str = Cookie(None), db: Session = Depends(get_db)):
+async def revenue_reports(request: Request, view: str = "monthly", date: str = None, location: int = None, revenue_logged_in: str = Cookie(None), db: Session = Depends(get_db)):
     # Only ask for password if not logged in AND it's the main revenue access (no view parameter from URL)
     if revenue_logged_in != "true" and not request.url.query:
         return templates.TemplateResponse("revenue_login.html", {"request": request})
     
+    if location is None:
+        location = int(os.environ.get('DEFAULT_LOCATION', 1))
+    
     if view == "daily":
-        revenue_data = crud.get_daily_revenue(db, date)
+        revenue_data = crud.get_daily_revenue(db, date, location)
         template = "daily_revenue.html"
     elif view == "weekly":
-        revenue_data = crud.get_weekly_revenue(db, date)
+        revenue_data = crud.get_weekly_revenue(db, date, location)
         template = "weekly_revenue.html"
     else:
-        revenue_data = crud.get_monthly_revenue(db)
+        revenue_data = crud.get_monthly_revenue(db, location_id=location)
         template = "monthly_revenue.html"
+    
+    location_name = "Mallorca" if location == 1 else "Concell"
     
     return templates.TemplateResponse(template, {
         "request": request,
         "revenue_data": revenue_data,
         "current_view": view,
-        "selected_date": date or datetime.now().strftime('%Y-%m-%d')
+        "selected_date": date or datetime.now().strftime('%Y-%m-%d'),
+        "location": location_name,
+        "location_id": location
     })
 
 @app.post("/admin/revenue-login")
