@@ -103,7 +103,7 @@ def check_business_hours():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     if not check_business_hours():
-        return HTMLResponse("<h1>MINORE BARBERSHOP</h1><p>We're closed. Open 10 AM - 10 PM CET</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+        return HTMLResponse("<h1>MINORE BARBERSHOP</h1><p>We are closed. Open 11:00 - 20:00</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
     return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get("/locations", response_class=HTMLResponse)
@@ -123,7 +123,7 @@ async def test_dashboard():
 @app.get("/mallorca/book", response_class=HTMLResponse)
 async def book_appointment_mallorca(request: Request, db: Session = Depends(get_db)):
     if not check_business_hours():
-        return HTMLResponse("<h1>MINORE BARBERSHOP - MALLORCA</h1><p>We're closed. Open 10 AM - 10 PM CET</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+        return HTMLResponse("<h1>MINORE BARBERSHOP - MALLORCA</h1><p>We are closed. Open 11:00 - 20:00</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
     services = crud.get_services_by_location(db, 1)
     barbers = crud.get_active_barbers_by_location(db, 1)
     return templates.TemplateResponse("booking.html", {
@@ -137,7 +137,7 @@ async def book_appointment_mallorca(request: Request, db: Session = Depends(get_
 @app.get("/concell/book", response_class=HTMLResponse)
 async def book_appointment_concell(request: Request, db: Session = Depends(get_db)):
     if not check_business_hours():
-        return HTMLResponse("<h1>MINORE BARBERSHOP - CONCELL</h1><p>We're closed. Open 10 AM - 10 PM CET</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+        return HTMLResponse("<h1>MINORE BARBERSHOP - CONCELL</h1><p>We are closed. Open 11:00 - 20:00</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
     services = crud.get_services_by_location(db, 2)
     barbers = crud.get_active_barbers_by_location(db, 2)
     return templates.TemplateResponse("booking.html", {
