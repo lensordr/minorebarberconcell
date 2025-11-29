@@ -24,7 +24,7 @@ def check_admin_auth(request: Request, admin_logged_in: str = Cookie(None)):
 async def lifespan(app: FastAPI):
     # Startup
     scheduler.start()
-    print("Keep-alive active during business hours (10 AM - 8 PM)")
+    print("Keep-alive active during business hours (10 AM - 10 PM)")
     print("MINORE BARBER - Ready for appointments!")
     yield
     # Shutdown
@@ -49,19 +49,28 @@ last_booking_time = 0
 scheduler = AsyncIOScheduler()
 
 async def keep_alive():
-    """Keep app alive during business hours (10 AM - 7 PM)"""
+    """Keep app alive during business hours (10 AM - 8 PM CET)"""
     import aiohttp
     import os
+    from datetime import timezone, timedelta
     
-    current_hour = datetime.now().hour
-    if 10 <= current_hour < 20:  # Only during business hours
+    # Use CET timezone (UTC+1, UTC+2 in summer)
+    cet = timezone(timedelta(hours=1))
+    current_time = datetime.now(cet)
+    current_hour = current_time.hour
+    
+    print(f"Keep-alive check: CET time {current_time.strftime('%H:%M')}, hour={current_hour}")
+    
+    if 10 <= current_hour < 22:  # Only during business hours CET
         try:
             app_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{app_url}/") as response:
-                    print(f"Keep-alive ping: {response.status} at {datetime.now().strftime('%H:%M')}")
+                    print(f"Keep-alive ping: {response.status} at {current_time.strftime('%H:%M')} CET")
         except Exception as e:
             print(f"Keep-alive error: {e}")
+    else:
+        print(f"Outside business hours ({current_hour}:00 CET) - skipping keep-alive")
 
 # Schedule keep-alive every 14 minutes
 scheduler.add_job(
@@ -534,11 +543,25 @@ async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Se
         })
 
 @app.get("/api/check-refresh")
-async def check_refresh(last_check: float = 0):
+async def check_refresh(request: Request, last_check: float = 0):
+    from datetime import timezone, timedelta
+    
+    # Check business hours (CET timezone)
+    cet = timezone(timedelta(hours=1))
+    current_time = datetime.now(cet)
+    current_hour = current_time.hour
+    
+    # Outside business hours - return inactive status
+    if not (10 <= current_hour < 22):
+        client_ip = request.client.host
+        print(f"Refresh check from {client_ip} outside business hours ({current_hour}:00 CET) - returning inactive")
+        return {"refresh_needed": False, "timestamp": 0, "business_hours": False}
+    
     global last_booking_time
     refresh_needed = last_booking_time > last_check
-    print(f"Refresh check: last_booking={last_booking_time}, last_check={last_check}, refresh_needed={refresh_needed}")
-    return {"refresh_needed": refresh_needed, "timestamp": last_booking_time}
+    client_ip = request.client.host
+    print(f"Refresh check from {client_ip}: last_booking={last_booking_time}, last_check={last_check}, refresh_needed={refresh_needed}")
+    return {"refresh_needed": refresh_needed, "timestamp": last_booking_time, "business_hours": True}
 
 @app.get("/export-data")
 async def export_data(db: Session = Depends(get_db)):

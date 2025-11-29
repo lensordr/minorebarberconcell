@@ -1428,3 +1428,214 @@ main {
         padding: 1.5rem;
     }
 }
+
+/* ===== ANIMATIONS ===== */
+
+/* Success Animation */
+@keyframes checkmark {
+    0% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+    100% { transform: scale(1) rotate(360deg); opacity: 1; }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes slideInUp {
+    0% { transform: translateY(30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+    0% { transform: translateX(30px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes countUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+    40%, 43% { transform: translate3d(0, -10px, 0); }
+    70% { transform: translate3d(0, -5px, 0); }
+    90% { transform: translate3d(0, -2px, 0); }
+}
+
+/* Success Icon Animation */
+.success-icon {
+    animation: checkmark 0.8s ease-in-out;
+}
+
+.success-message {
+    animation: slideInUp 0.6s ease-out;
+}
+
+/* New Appointment Animation */
+.appointment-item.new-appointment {
+    animation: slideInRight 0.5s ease-out;
+    border-left: 3px solid #fbcc93 !important;
+    box-shadow: 0 0 15px rgba(251, 204, 147, 0.3);
+}
+
+/* Revenue Counter Animation */
+.revenue-amount.animate {
+    animation: countUp 0.8s ease-out;
+}
+
+/* Status Change Animation */
+.appointment-item.status-change {
+    animation: pulse 0.6s ease-in-out;
+}
+
+/* Button Hover Animations */
+.btn-complete:hover {
+    animation: bounce 0.6s;
+}
+
+.btn-checkout:hover {
+    animation: pulse 0.3s;
+}
+
+/* Dashboard Refresh Animation */
+.dashboard.refreshing {
+    position: relative;
+}
+
+.dashboard.refreshing::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #fbcc93, transparent);
+    animation: loading 1.5s infinite;
+    z-index: 10;
+}
+
+@keyframes loading {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Form Validation Animations */
+.form-group.error input {
+    border-color: #dc3545;
+    animation: shake 0.5s;
+}
+
+.form-group.success input {
+    border-color: #28a745;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Loading States */
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Notification Animation */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #fbcc93;
+    color: #1d1a1c;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 1000;
+    animation: slideInRight 0.5s ease-out;
+}
+
+.notification.success {
+    background: #28a745;
+    color: white;
+}
+
+.notification.error {
+    background: #dc3545;
+    color: white;
+}
+
+.notification.hide {
+    animation: slideOutRight 0.5s ease-in forwards;
+}
+
+@keyframes slideOutRight {
+    0% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Grid Cell Hover Animation */
+.appointment-cell:hover .appointment-item {
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
+}
+
+.clickable-slot:hover {
+    animation: pulse 0.5s infinite;
+}
+
+/* Revenue Card Animation */
+.revenue-card:hover {
+    transform: translateY(-3px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 6px 20px rgba(251, 204, 147, 0.2);
+}
+
+/* Stagger Animation for Multiple Items */
+.appointment-item:nth-child(1) { animation-delay: 0.1s; }
+.appointment-item:nth-child(2) { animation-delay: 0.2s; }
+.appointment-item:nth-child(3) { animation-delay: 0.3s; }
+.appointment-item:nth-child(4) { animation-delay: 0.4s; }
+.appointment-item:nth-child(5) { animation-delay: 0.5s; }
+
+/* Mobile Animation Adjustments */
+@media (max-width: 768px) {
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
+    }
+    
+    .appointment-item.new-appointment {
+        animation-duration: 0.3s;
+    }
+}
