@@ -41,14 +41,26 @@
         </div>
         
         <div class="form-group">
-            <label for="barber_id">Barber</label>
-            <select id="barber_id" name="barber_id" required>
-                <option value="">Select a barber</option>
-                <option value="random">Aleatorio (Random)</option>
+            <label>Choose Your Barber</label>
+            <div class="barber-grid">
+                <div class="barber-option" data-barber-id="random">
+                    <div class="barber-photo random-barber">
+                        <span>🎲</span>
+                    </div>
+                    <div class="barber-name">Random</div>
+                </div>
                 {% for barber in barbers %}
-                <option value="{{ barber.id }}">{{ barber.name }}</option>
+                <div class="barber-option" data-barber-id="{{ barber.id }}">
+                    <div class="barber-photo">
+                        <img src="/static/photos/{{ location.lower() }}/{{ barber.name }}.jpg" 
+                             alt="{{ barber.name }}" 
+                             onerror="this.src='/static/photos/{{ location.lower() }}/{{ barber.name }}.PNG'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNmYmNjOTMiLz48dGV4dCB4PSI1MCIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0MCIgZmlsbD0iIzFkMWExYyI+8J+RqDwvdGV4dD48L3N2Zz4='}">
+                    </div>
+                    <div class="barber-name">{{ barber.name }}</div>
+                </div>
                 {% endfor %}
-            </select>
+            </div>
+            <input type="hidden" id="barber_id" name="barber_id" required>
         </div>
         
         <div class="form-group">
@@ -148,7 +160,24 @@ function updateAvailableTimes() {
     }
 }
 
-document.getElementById('barber_id').addEventListener('change', updateAvailableTimes);
+// Barber photo grid selection
+document.querySelectorAll('.barber-option').forEach(option => {
+    option.addEventListener('click', function() {
+        // Remove selected class from all options
+        document.querySelectorAll('.barber-option').forEach(opt => opt.classList.remove('selected'));
+        
+        // Add selected class to clicked option
+        this.classList.add('selected');
+        
+        // Set hidden input value
+        const barberId = this.getAttribute('data-barber-id');
+        document.getElementById('barber_id').value = barberId;
+        
+        // Update available times
+        updateAvailableTimes();
+    });
+});
+
 document.getElementById('service_id').addEventListener('change', updateAvailableTimes);
 </script>
 {% endblock %}

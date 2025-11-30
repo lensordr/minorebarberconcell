@@ -1639,3 +1639,91 @@ main {
         animation-duration: 0.3s;
     }
 }
+/* Barber Photo Grid */
+.barber-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.barber-option {
+    text-align: center;
+    cursor: pointer;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    background: #1d1a1c;
+}
+
+.barber-option:hover {
+    border-color: #fbcc93;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(251, 204, 147, 0.2);
+}
+
+.barber-option.selected {
+    border-color: #fbcc93;
+    background: rgba(251, 204, 147, 0.1);
+    box-shadow: 0 0 20px rgba(251, 204, 147, 0.3);
+}
+
+.barber-photo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 0.5rem;
+    overflow: hidden;
+    border: 3px solid #333;
+    transition: border-color 0.3s ease;
+}
+
+.barber-option.selected .barber-photo {
+    border-color: #fbcc93;
+}
+
+.barber-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.barber-photo.random-barber {
+    background: linear-gradient(45deg, #fbcc93, #f4b876);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.barber-name {
+    font-weight: 600;
+    color: #fbcc93;
+    font-size: 0.9rem;
+}
+
+.barber-option.selected .barber-name {
+    color: #fbcc93;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .barber-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .barber-option {
+        padding: 0.75rem;
+    }
+    
+    .barber-photo {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .barber-name {
+        font-size: 0.8rem;
+    }
+}

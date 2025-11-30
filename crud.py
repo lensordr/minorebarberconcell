@@ -220,6 +220,11 @@ def get_today_appointment_counts_by_location(db: Session, location_id: int):
 def get_available_times_for_service(db: Session, barber_id: int, service_id: int):
     now = datetime.now()
     today = now.date()
+    
+    # Block Sunday bookings (weekday 6 = Sunday)
+    if today.weekday() == 6:
+        return []  # No times available on Sunday
+    
     schedule = get_schedule(db)
     
     # Get service duration
@@ -547,7 +552,7 @@ def get_daily_revenue(db: Session, date: str = None, location_id: int = None):
     }
 
 def get_barber_with_least_appointments(db: Session, service_id: int, appointment_time: str, location_id: int = None):
-    """Find active barber with least appointments for the day"""
+    """Find active barber with least appointments for the day (excludes Luca and Raffa from random)"""
     appointment_dt = datetime.fromisoformat(appointment_time)
     today = appointment_dt.date()
     
@@ -556,9 +561,13 @@ def get_barber_with_least_appointments(db: Session, service_id: int, appointment
     else:
         active_barbers = get_active_barbers(db)
     
+    # Exclude Luca and Raffa from random selection
+    excluded_names = ['Luca', 'Raffa']
+    eligible_barbers = [b for b in active_barbers if b.name not in excluded_names]
+    
     barber_counts = []
     
-    for barber in active_barbers:
+    for barber in eligible_barbers:
         # Count today's appointments for this barber
         count = db.query(models.Appointment).filter(
             models.Appointment.barber_id == barber.id,
