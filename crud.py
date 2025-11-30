@@ -458,19 +458,37 @@ def update_appointment_details(db: Session, appointment_id: int, time: str, pric
     return appointment
 
 def delete_barber(db: Session, barber_id: int):
-    # First delete all appointments for this barber
-    db.query(models.Appointment).filter(models.Appointment.barber_id == barber_id).delete()
-    # Then delete the barber
-    barber = db.query(models.Barber).filter(models.Barber.id == barber_id).first()
-    if barber:
-        db.delete(barber)
-        db.commit()
-    return barber
+    try:
+        # First delete all revenue records for this barber
+        db.query(models.MonthlyRevenue).filter(models.MonthlyRevenue.barber_id == barber_id).delete()
+        db.query(models.DailyRevenue).filter(models.DailyRevenue.barber_id == barber_id).delete()
+        
+        # Then delete all appointments for this barber
+        db.query(models.Appointment).filter(models.Appointment.barber_id == barber_id).delete()
+        
+        # Finally delete the barber
+        barber = db.query(models.Barber).filter(models.Barber.id == barber_id).first()
+        if barber:
+            db.delete(barber)
+            db.commit()
+        return barber
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting barber: {e}")
+        raise e
 
 def toggle_barber_status(db: Session, barber_id: int):
     barber = db.query(models.Barber).filter(models.Barber.id == barber_id).first()
     if barber:
         barber.active = 1 - barber.active  # Toggle between 0 and 1
+        db.commit()
+        db.refresh(barber)
+    return barber
+
+def update_barber_name(db: Session, barber_id: int, new_name: str):
+    barber = db.query(models.Barber).filter(models.Barber.id == barber_id).first()
+    if barber:
+        barber.name = new_name
         db.commit()
         db.refresh(barber)
     return barber

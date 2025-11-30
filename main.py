@@ -342,6 +342,11 @@ async def toggle_barber(barber_id: int, db: Session = Depends(get_db)):
     crud.toggle_barber_status(db, barber_id)
     return RedirectResponse(url="/admin/staff", status_code=303)
 
+@app.post("/admin/edit-barber/{barber_id}")
+async def edit_barber(barber_id: int, name: str = Form(...), db: Session = Depends(get_db)):
+    crud.update_barber_name(db, barber_id, name)
+    return RedirectResponse(url="/admin/staff", status_code=303)
+
 @app.post("/admin/add-service")
 async def add_service(
     name: str = Form(...),
