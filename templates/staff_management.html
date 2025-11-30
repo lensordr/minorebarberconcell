@@ -129,37 +129,4 @@
                 <input type="text" id="editBarberName" name="name" placeholder="Barber name" required>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">Save</button>
-                    <button type="button" onclick="closeBarberModal()" class="btn btn-secondary">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function editService(id, name, description, duration, price) {
-    document.getElementById('editName').value = name || '';
-    document.getElementById('editDescription').value = description || '';
-    document.getElementById('editDuration').value = duration;
-    document.getElementById('editPrice').value = price;
-    document.getElementById('editForm').action = '/admin/edit-service/' + id;
-    document.getElementById('editModal').style.display = 'block';
-}
-
-function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
-}
-
-function editBarber(id, name) {
-    document.getElementById('editBarberName').value = name || '';
-    document.getElementById('editBarberForm').action = '/admin/edit-barber/' + id;
-    document.getElementById('editBarberModal').style.display = 'block';
-}
-
-function closeBarberModal() {
-    document.getElementById('editBarberModal').style.display = 'none';
-}
-</script>
-{% endblock %}
+                    <button type=

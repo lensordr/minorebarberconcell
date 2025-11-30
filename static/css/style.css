@@ -1644,8 +1644,6 @@ main {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 300px;
-    overflow-y: auto;
     border: 1px solid #333;
     border-radius: 8px;
     background: #1d1a1c;

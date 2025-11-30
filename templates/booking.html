@@ -146,46 +146,4 @@ function updateAvailableTimes() {
                     times.forEach(time => {
                         const [hour, minute] = time.split(':').map(Number);
                         const timeInMinutes = hour * 60 + minute;
-                        const currentTimeInMinutes = currentHour * 60 + currentMinute;
-                        
-                        // Only show times that are in the future
-                        if (timeInMinutes > currentTimeInMinutes) {
-                            const today = new Date().toISOString().split('T')[0];
-                            const datetime = `${today}T${time}:00`;
-                            timeSelect.innerHTML += `<option value="${datetime}">${time}</option>`;
-                        }
-                    });
-                    timeSelect.disabled = false;
-                })
-                .catch(error => {
-                    timeSelect.innerHTML = '<option value="">Error loading times</option>';
-                    timeSelect.disabled = false;
-                });
-        }
-    } else {
-        timeSelect.innerHTML = '<option value="">Select service and barber first</option>';
-        timeSelect.disabled = true;
-    }
-}
-
-// Barber list selection
-document.querySelectorAll('.barber-item').forEach(item => {
-    item.addEventListener('click', function() {
-        // Remove selected class from all items
-        document.querySelectorAll('.barber-item').forEach(i => i.classList.remove('selected'));
-        
-        // Add selected class to clicked item
-        this.classList.add('selected');
-        
-        // Set hidden input value
-        const barberId = this.getAttribute('data-barber-id');
-        document.getElementById('barber_id').value = barberId;
-        
-        // Update available times
-        updateAvailableTimes();
-    });
-});
-
-document.getElementById('service_id').addEventListener('change', updateAvailableTimes);
-</script>
-{% endblock %}
+                        const currentTimeInMin
