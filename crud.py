@@ -111,7 +111,8 @@ def create_appointment(db: Session, client_name: str, email: str, phone: str, se
         service_id=service_id,
         barber_id=barber_id,
         appointment_time=appointment_dt,
-        cancel_token=cancel_token
+        cancel_token=cancel_token,
+        is_online=1
     )
     db.add(appointment)
     db.commit()
@@ -221,11 +222,15 @@ def get_available_times_for_service(db: Session, barber_id: int, service_id: int
     now = datetime.now()
     today = now.date()
     
+    schedule = get_schedule(db)
+    
+    # Check if schedule is closed (master toggle)
+    if not schedule.is_open:
+        return []  # No times available when schedule is closed
+    
     # Block Sunday bookings (weekday 6 = Sunday)
     if today.weekday() == 6:
         return []  # No times available on Sunday
-    
-    schedule = get_schedule(db)
     
     # Get service duration
     service = db.query(models.Service).filter(models.Service.id == service_id).first()
@@ -330,14 +335,15 @@ def get_barbers_with_revenue(db: Session):
         barber.today_revenue = sum(apt.custom_price or apt.service.price for apt in completed_appointments)
         barber.today_appointments = len(completed_appointments)
         
-        # Get total scheduled appointments for today
-        total_today = db.query(models.Appointment).filter(
+        # Get total scheduled appointments for today (exclude cancelled and completed)
+        scheduled_today = db.query(models.Appointment).filter(
             models.Appointment.barber_id == barber.id,
             models.Appointment.appointment_time >= today,
-            models.Appointment.appointment_time < today + timedelta(days=1)
+            models.Appointment.appointment_time < today + timedelta(days=1),
+            models.Appointment.status == "scheduled"
         ).count()
         
-        barber.total_today_appointments = total_today
+        barber.total_today_appointments = scheduled_today + len(completed_appointments)
     
     return barbers
 
@@ -357,20 +363,21 @@ def get_barbers_with_revenue_by_location(db: Session, location_id: int):
         barber.today_revenue = sum(apt.custom_price or apt.service.price for apt in completed_appointments)
         barber.today_appointments = len(completed_appointments)
         
-        # Get total scheduled appointments for today
-        total_today = db.query(models.Appointment).filter(
+        # Get total scheduled appointments for today (exclude cancelled and completed)
+        scheduled_today = db.query(models.Appointment).filter(
             models.Appointment.barber_id == barber.id,
             models.Appointment.appointment_time >= today,
-            models.Appointment.appointment_time < today + timedelta(days=1)
+            models.Appointment.appointment_time < today + timedelta(days=1),
+            models.Appointment.status == "scheduled"
         ).count()
         
-        barber.total_today_appointments = total_today
+        barber.total_today_appointments = scheduled_today + len(completed_appointments)
     
     return barbers
 
 def checkout_appointment(db: Session, appointment_id: int):
     appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
-    if appointment:
+    if appointment and appointment.status != "completed":
         appointment.status = "completed"
         
         # Save to monthly revenue immediately
@@ -506,6 +513,13 @@ def update_schedule(db: Session, start_hour: int, end_hour: int):
     schedule = get_schedule(db)
     schedule.start_hour = start_hour
     schedule.end_hour = end_hour
+    db.commit()
+    db.refresh(schedule)
+    return schedule
+
+def toggle_schedule(db: Session):
+    schedule = get_schedule(db)
+    schedule.is_open = 1 - schedule.is_open  # Toggle between 0 and 1
     db.commit()
     db.refresh(schedule)
     return schedule

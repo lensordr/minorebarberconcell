@@ -1325,6 +1325,20 @@ main {
     color: white !important;
 }
 
+.appointment-online {
+    background-color: #007bff !important;
+    border-left: 3px solid #0056b3 !important;
+    color: white !important;
+}
+
+.appointment-online .client-name {
+    color: white !important;
+}
+
+.appointment-online .service-name {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
 /* Location Selector */
 .location-selector {
     text-align: center;

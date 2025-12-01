@@ -39,6 +39,7 @@ class Appointment(Base):
     custom_price = Column(Float, default=None)  # Override service price
     custom_duration = Column(Integer, default=None)  # Override service duration
     is_random = Column(Integer, default=0)  # 1 if randomly assigned
+    is_online = Column(Integer, default=0)  # 1 if booked online by client
     email = Column(String, default="")
     cancel_token = Column(String, default="")
     location_id = Column(Integer, default=1)  # 1=mallorca, 2=concell
@@ -52,6 +53,7 @@ class Schedule(Base):
     id = Column(Integer, primary_key=True, index=True)
     start_hour = Column(Integer, default=11)  # 11 AM
     end_hour = Column(Integer, default=19)    # 7 PM
+    is_open = Column(Integer, default=1)      # 1=open, 0=closed (master toggle)
     monday = Column(Integer, default=1)       # 1=open, 0=closed
     tuesday = Column(Integer, default=1)
     wednesday = Column(Integer, default=1)

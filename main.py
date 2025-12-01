@@ -14,6 +14,8 @@ from apscheduler.triggers.cron import CronTrigger
 import json
 from sse_starlette.sse import EventSourceResponse
 from contextlib import asynccontextmanager
+import io
+import pandas as pd
 
 def check_admin_auth(request: Request, admin_logged_in: str = Cookie(None)):
     if admin_logged_in != "true":
@@ -124,6 +126,11 @@ async def test_dashboard():
 async def book_appointment_mallorca(request: Request, db: Session = Depends(get_db)):
     if not check_business_hours():
         return HTMLResponse("<h1>MINORE BARBERSHOP - MALLORCA</h1><p>We are closed. Open 11:00 - 20:00</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+    
+    schedule = crud.get_schedule(db)
+    if not schedule.is_open:
+        return HTMLResponse("<h1>MINORE BARBERSHOP - MALLORCA</h1><p>We are temporarily closed. Please check back later.</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+    
     services = crud.get_services_by_location(db, 1)
     barbers = crud.get_active_barbers_by_location(db, 1)
     return templates.TemplateResponse("booking.html", {
@@ -138,6 +145,11 @@ async def book_appointment_mallorca(request: Request, db: Session = Depends(get_
 async def book_appointment_concell(request: Request, db: Session = Depends(get_db)):
     if not check_business_hours():
         return HTMLResponse("<h1>MINORE BARBERSHOP - CONCELL</h1><p>We are closed. Open 11:00 - 20:00</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+    
+    schedule = crud.get_schedule(db)
+    if not schedule.is_open:
+        return HTMLResponse("<h1>MINORE BARBERSHOP - CONCELL</h1><p>We are temporarily closed. Please check back later.</p><style>body{font-family:Arial;text-align:center;padding:50px;background:#1d1a1c;color:#fbcc93;}</style>")
+    
     services = crud.get_services_by_location(db, 2)
     barbers = crud.get_active_barbers_by_location(db, 2)
     return templates.TemplateResponse("booking.html", {
@@ -439,6 +451,11 @@ async def update_schedule(
     crud.update_schedule(db, start_hour, end_hour)
     return RedirectResponse(url="/admin/staff", status_code=303)
 
+@app.post("/admin/toggle-schedule")
+async def toggle_schedule(db: Session = Depends(get_db), auth: bool = Depends(check_admin_auth)):
+    crud.toggle_schedule(db)
+    return RedirectResponse(url="/admin/staff", status_code=303)
+
 @app.post("/admin/cleanup")
 async def cleanup_daily(db: Session = Depends(get_db)):
     cleaned = crud.cleanup_daily_and_save_revenue(db)
@@ -491,6 +508,54 @@ async def revenue_logout():
     response = RedirectResponse(url="/admin/dashboard", status_code=303)
     response.delete_cookie("revenue_logged_in")
     return response
+
+@app.get("/admin/export-revenue")
+async def export_revenue(view: str = "monthly", date: str = None, location: int = None, db: Session = Depends(get_db)):
+    if location is None:
+        location = int(os.environ.get('DEFAULT_LOCATION', 1))
+    
+    location_name = "Mallorca" if location == 1 else "Concell"
+    
+    if view == "monthly":
+        revenue_data = crud.get_monthly_revenue(db, location_id=location)
+        filename = f"Monthly_Revenue_{location_name}_{datetime.now().strftime('%Y_%m')}.xlsx"
+    elif view == "weekly":
+        revenue_data = crud.get_weekly_revenue(db, date, location)
+        filename = f"Weekly_Revenue_{location_name}_{date or datetime.now().strftime('%Y_%m_%d')}.xlsx"
+    else:
+        revenue_data = crud.get_daily_revenue(db, date, location)
+        filename = f"Daily_Revenue_{location_name}_{date or datetime.now().strftime('%Y_%m_%d')}.xlsx"
+    
+    # Create DataFrame
+    data = []
+    for record in revenue_data['records']:
+        data.append({
+            'Barber': record.barber.name,
+            'Revenue (€)': record.revenue,
+            'Appointments': record.appointments_count
+        })
+    
+    # Add total row
+    data.append({
+        'Barber': 'TOTAL',
+        'Revenue (€)': revenue_data['total_revenue'],
+        'Appointments': revenue_data['total_appointments']
+    })
+    
+    df = pd.DataFrame(data)
+    
+    # Create Excel file in memory
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Revenue Report')
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        io.BytesIO(output.read()),
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @app.get("/admin/logout")
 async def admin_logout():

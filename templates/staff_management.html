@@ -15,6 +15,22 @@
 <div class="staff-management">
     <div class="section">
         <h2>Schedule Settings</h2>
+        
+        <!-- Schedule ON/OFF Toggle -->
+        <div style="margin-bottom: 2rem; padding: 1rem; background: #1d1a1c; border-radius: 8px; border: 1px solid #444;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; color: #fbcc93;">Schedule Status</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: #fbcc93; opacity: 0.8; font-size: 0.9rem;">{% if schedule.is_open %}Bookings are OPEN{% else %}Bookings are CLOSED{% endif %}</p>
+                </div>
+                <form method="POST" action="/admin/toggle-schedule" style="margin: 0;">
+                    <button type="submit" class="btn" style="{% if schedule.is_open %}background: #dc3545; color: white;{% else %}background: #28a745; color: white;{% endif %} padding: 0.75rem 1.5rem; font-weight: bold;">
+                        {% if schedule.is_open %}🔒 CLOSE Schedule{% else %}🔓 OPEN Schedule{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        
         <form method="POST" action="/admin/update-schedule" class="schedule-form">
             <div class="schedule-row">
                 <label>Opening Hour:</label>
