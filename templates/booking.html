@@ -184,4 +184,24 @@ function updateAvailableTimes() {
     }
 }
 
-// Barber 
+// Barber list selection
+document.querySelectorAll('.barber-item').forEach(item => {
+    item.addEventListener('click', function() {
+        // Remove selected class from all items
+        document.querySelectorAll('.barber-item').forEach(i => i.classList.remove('selected'));
+        
+        // Add selected class to clicked item
+        this.classList.add('selected');
+        
+        // Set hidden input value
+        const barberId = this.getAttribute('data-barber-id');
+        document.getElementById('barber_id').value = barberId;
+        
+        // Update available times
+        updateAvailableTimes();
+    });
+});
+
+document.getElementById('service_id').addEventListener('change', updateAvailableTimes);
+</script>
+{% endblock %}

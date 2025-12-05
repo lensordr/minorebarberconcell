@@ -611,4 +611,19 @@ async def check_refresh(request: Request, last_check: float = 0):
     refresh_needed = last_booking_time > last_check
     client_ip = request.client.host
     print(f"Refresh check from {client_ip}: last_booking={last_booking_time}, last_check={last_check}, refresh_needed={refresh_needed}")
-    return {"refresh_needed": refresh_needed, "timestamp": last_booki
+    return {"refresh_needed": refresh_needed, "timestamp": last_booking_time, "business_hours": True}
+
+@app.get("/export-data")
+async def export_data(db: Session = Depends(get_db)):
+    barbers = db.query(models.Barber).all()
+    services = db.query(models.Service).all()
+    
+    return {
+        "barbers": [{"name": b.name, "active": b.active} for b in barbers],
+        "services": [{"name": s.name, "description": s.description, "duration": s.duration, "price": s.price} for s in services]
+    }
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

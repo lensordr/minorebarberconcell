@@ -661,4 +661,12 @@ def get_weekly_revenue(db: Session, date: str = None, location_id: int = None):
     
     weekly_records = list(barber_totals.values())
     total_revenue = sum(r["revenue"] for r in weekly_records)
-    total_appointments = s
+    total_appointments = sum(r["appointments_count"] for r in weekly_records)
+    
+    return {
+        "records": weekly_records,
+        "total_revenue": total_revenue,
+        "total_appointments": total_appointments,
+        "week_start": start_of_week.strftime('%Y-%m-%d'),
+        "week_end": end_of_week.strftime('%Y-%m-%d')
+    }
