@@ -327,7 +327,7 @@ def get_barbers_with_revenue(db: Session):
     return barbers
 
 def get_barbers_with_revenue_by_location(db: Session, location_id: int):
-    barbers = db.query(models.Barber).filter(models.Barber.location_id == location_id).all()
+    barbers = db.query(models.Barber).filter(models.Barber.location_id == location_id).order_by(models.Barber.id).all()
     today = datetime.now().date()
     
     for barber in barbers:
