@@ -135,6 +135,22 @@ def create_appointment_admin(db: Session, client_name: str, phone: str, service_
     db.refresh(appointment)
     return appointment
 
+def create_appointment_admin_fast(db: Session, client_name: str, service_id: int, barber_id: int, appointment_time: str, duration: int, price: float):
+    appointment_dt = datetime.fromisoformat(appointment_time)
+    
+    # Ultra-fast admin creation - single transaction
+    appointment = models.Appointment(
+        client_name=client_name,
+        service_id=service_id,
+        barber_id=barber_id,
+        appointment_time=appointment_dt,
+        custom_duration=duration,
+        custom_price=price
+    )
+    db.add(appointment)
+    db.commit()
+    return appointment
+
 def get_today_appointments_ordered(db: Session):
     today = datetime.now().date()
     return db.query(models.Appointment).filter(
@@ -327,30 +343,42 @@ def get_barbers_with_revenue(db: Session):
     return barbers
 
 def get_barbers_with_revenue_by_location(db: Session, location_id: int):
+    from sqlalchemy import func
     barbers = db.query(models.Barber).filter(models.Barber.location_id == location_id).order_by(models.Barber.id).all()
     today = datetime.now().date()
     
+    # Single query for all barber stats
+    stats = db.query(
+        models.Appointment.barber_id,
+        func.sum(func.coalesce(models.Appointment.custom_price, models.Service.price)).label('revenue'),
+        func.count(models.Appointment.id).label('completed_count')
+    ).join(models.Service).filter(
+        models.Appointment.appointment_time >= today,
+        models.Appointment.appointment_time < today + timedelta(days=1),
+        models.Appointment.status == "completed"
+    ).group_by(models.Appointment.barber_id).all()
+    
+    # Single query for scheduled counts
+    scheduled_stats = db.query(
+        models.Appointment.barber_id,
+        func.count(models.Appointment.id).label('scheduled_count')
+    ).filter(
+        models.Appointment.appointment_time >= today,
+        models.Appointment.appointment_time < today + timedelta(days=1),
+        models.Appointment.status == "scheduled"
+    ).group_by(models.Appointment.barber_id).all()
+    
+    # Create lookup dictionaries
+    revenue_lookup = {stat.barber_id: (stat.revenue or 0, stat.completed_count) for stat in stats}
+    scheduled_lookup = {stat.barber_id: stat.scheduled_count for stat in scheduled_stats}
+    
     for barber in barbers:
-        # Get today's completed appointments
-        completed_appointments = db.query(models.Appointment).filter(
-            models.Appointment.barber_id == barber.id,
-            models.Appointment.appointment_time >= today,
-            models.Appointment.appointment_time < today + timedelta(days=1),
-            models.Appointment.status == "completed"
-        ).all()
+        revenue, completed = revenue_lookup.get(barber.id, (0, 0))
+        scheduled = scheduled_lookup.get(barber.id, 0)
         
-        barber.today_revenue = sum(apt.custom_price or apt.service.price for apt in completed_appointments)
-        barber.today_appointments = len(completed_appointments)
-        
-        # Get total scheduled appointments for today (exclude cancelled and completed)
-        scheduled_today = db.query(models.Appointment).filter(
-            models.Appointment.barber_id == barber.id,
-            models.Appointment.appointment_time >= today,
-            models.Appointment.appointment_time < today + timedelta(days=1),
-            models.Appointment.status == "scheduled"
-        ).count()
-        
-        barber.total_today_appointments = scheduled_today + len(completed_appointments)
+        barber.today_revenue = revenue
+        barber.today_appointments = completed
+        barber.total_today_appointments = scheduled + completed
     
     return barbers
 
