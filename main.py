@@ -46,52 +46,33 @@ last_booking_time = 0
 
 # Tables created manually - no auto-creation to preserve data
 
-# Keep-alive scheduler
+# Keep-alive scheduler - disabled for local development
 scheduler = AsyncIOScheduler()
 
-async def keep_alive():
-    """Keep app alive during business hours (10 AM - 8 PM CET)"""
-    import aiohttp
-    import os
-    from datetime import timezone, timedelta
+# Only enable keep-alive in production
+if os.environ.get('RENDER_EXTERNAL_URL'):
+    async def keep_alive():
+        """Keep app alive during business hours (10 AM - 8 PM CET)"""
+        import aiohttp
+        from datetime import timezone, timedelta
+        
+        cet = timezone(timedelta(hours=1))
+        current_time = datetime.now(cet)
+        current_hour = current_time.hour
+        
+        if 10 <= current_hour < 22:
+            try:
+                app_url = os.environ.get('RENDER_EXTERNAL_URL')
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{app_url}/") as response:
+                        print(f"Keep-alive: {response.status}")
+            except Exception as e:
+                print(f"Keep-alive error: {e}")
     
-    # Use CET timezone (UTC+1, UTC+2 in summer)
-    cet = timezone(timedelta(hours=1))
-    current_time = datetime.now(cet)
-    current_hour = current_time.hour
+    scheduler.add_job(keep_alive, 'interval', minutes=14, id='keep_alive')
     
-    print(f"Keep-alive check: CET time {current_time.strftime('%H:%M')}, hour={current_hour}")
-    
-    if 10 <= current_hour < 22:  # Only during business hours CET
-        try:
-            app_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{app_url}/") as response:
-                    print(f"Keep-alive ping: {response.status} at {current_time.strftime('%H:%M')} CET")
-        except Exception as e:
-            print(f"Keep-alive error: {e}")
-    else:
-        print(f"Outside business hours ({current_hour}:00 CET) - skipping keep-alive")
-
-# Schedule keep-alive every 14 minutes
-scheduler.add_job(
-    keep_alive,
-    'interval',
-    minutes=14,
-    id='keep_alive',
-    replace_existing=True
-)
-
-# Schedule daily revenue email at 9 AM
-from daily_revenue_email import send_daily_revenue_email
-scheduler.add_job(
-    send_daily_revenue_email,
-    'cron',
-    hour=9,
-    minute=0,
-    id='daily_revenue_email',
-    replace_existing=True
-)
+    from daily_revenue_email import send_daily_revenue_email
+    scheduler.add_job(send_daily_revenue_email, 'cron', hour=9, minute=0, id='daily_revenue')
 
 
 
@@ -391,18 +372,18 @@ async def delete_service(service_id: int, db: Session = Depends(get_db), auth: b
 
 @app.post("/admin/checkout/{appointment_id}")
 async def checkout_appointment(appointment_id: int, db: Session = Depends(get_db)):
-    crud.checkout_appointment(db, appointment_id)
-    return RedirectResponse(url="/admin/dashboard", status_code=303)
+    crud.checkout_appointment_fast(db, appointment_id)
+    return {"success": True}
 
 @app.post("/admin/cancel/{appointment_id}")
 async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
     crud.cancel_appointment(db, appointment_id)
-    return RedirectResponse(url="/admin/dashboard", status_code=303)
+    return {"success": True}
 
 @app.post("/admin/reopen/{appointment_id}")
 async def reopen_appointment(appointment_id: int, db: Session = Depends(get_db)):
     crud.reopen_appointment(db, appointment_id)
-    return RedirectResponse(url="/admin/dashboard", status_code=303)
+    return {"success": True}
 
 
 
@@ -585,25 +566,13 @@ async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Se
         })
 
 @app.get("/api/check-refresh")
-async def check_refresh(request: Request, last_check: float = 0):
-    from datetime import timezone, timedelta
-    
-    # Check business hours (CET timezone)
-    cet = timezone(timedelta(hours=1))
-    current_time = datetime.now(cet)
-    current_hour = current_time.hour
-    
-    # Outside business hours - return inactive status
-    if not (10 <= current_hour < 22):
-        client_ip = request.client.host
-        print(f"Refresh check from {client_ip} outside business hours ({current_hour}:00 CET) - returning inactive")
-        return {"refresh_needed": False, "timestamp": 0, "business_hours": False}
-    
+async def check_refresh(last_check: float = 0):
+    # Fast response - minimal processing
     global last_booking_time
-    refresh_needed = last_booking_time > last_check
-    client_ip = request.client.host
-    print(f"Refresh check from {client_ip}: last_booking={last_booking_time}, last_check={last_check}, refresh_needed={refresh_needed}")
-    return {"refresh_needed": refresh_needed, "timestamp": last_booking_time, "business_hours": True}
+    return {
+        "refresh_needed": last_booking_time > last_check,
+        "timestamp": last_booking_time
+    }
 
 @app.get("/export-data")
 async def export_data(db: Session = Depends(get_db)):

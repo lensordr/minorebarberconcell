@@ -382,7 +382,57 @@ def get_barbers_with_revenue_by_location(db: Session, location_id: int):
     
     return barbers
 
-def checkout_appointment(db: Session, appointment_id: int):
+def checkout_appointment_fast(db: Session, appointment_id: int):
+    # Single query update
+    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+    if appointment and appointment.status != "completed":
+        appointment.status = "completed"
+        
+        # Fast revenue update - single transaction
+        today = datetime.now().date()
+        revenue_amount = appointment.custom_price or appointment.service.price
+        
+        # Upsert monthly revenue
+        monthly_record = db.query(models.MonthlyRevenue).filter(
+            models.MonthlyRevenue.barber_id == appointment.barber_id,
+            models.MonthlyRevenue.year == today.year,
+            models.MonthlyRevenue.month == today.month
+        ).first()
+        
+        if monthly_record:
+            monthly_record.revenue += revenue_amount
+            monthly_record.appointments_count += 1
+        else:
+            monthly_record = models.MonthlyRevenue(
+                barber_id=appointment.barber_id,
+                year=today.year,
+                month=today.month,
+                revenue=revenue_amount,
+                appointments_count=1
+            )
+            db.add(monthly_record)
+        
+        # Upsert daily revenue
+        date_str = today.strftime('%Y-%m-%d')
+        daily_record = db.query(models.DailyRevenue).filter(
+            models.DailyRevenue.barber_id == appointment.barber_id,
+            models.DailyRevenue.date == date_str
+        ).first()
+        
+        if daily_record:
+            daily_record.revenue += revenue_amount
+            daily_record.appointments_count += 1
+        else:
+            daily_record = models.DailyRevenue(
+                barber_id=appointment.barber_id,
+                date=date_str,
+                revenue=revenue_amount,
+                appointments_count=1
+            )
+            db.add(daily_record)
+        
+        db.commit()
+    return appointment
     appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
     if appointment and appointment.status != "completed":
         appointment.status = "completed"

@@ -242,13 +242,12 @@ function updateServiceDuration() {
     }
 }
 
-// AJAX submission with refresh trigger
+// AJAX submission with immediate refresh
 function submitQuickBooking(event) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
     
-    // Disable submit button to prevent double submission
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
     submitBtn.disabled = true;
@@ -262,11 +261,9 @@ function submitQuickBooking(event) {
     .then(data => {
         if (data.success) {
             closeQuickBooking();
-            // Immediate refresh when appointment is successfully created
-            window.location.reload();
+            location.reload(); // Immediate refresh for admin actions
         } else {
             alert(data.message);
-            // Re-enable button on error
             submitBtn.disabled = false;
             submitBtn.textContent = originalText;
         }
@@ -322,9 +319,9 @@ function submitEditAppointment(event) {
     })
     .then(response => response.json())
     .then(data => {
-        closeEditAppointment();
         if (data.success) {
-            window.location.reload();
+            closeEditAppointment();
+            location.reload(); // Immediate refresh
         } else {
             alert(data.message);
         }
@@ -337,7 +334,7 @@ function completeAppointment() {
     const currentDuration = document.getElementById('editDuration').value;
     const currentTime = document.getElementById('editTime').value;
     
-    // First update the appointment with current form values
+    // Update and checkout in single operation
     const formData = new FormData();
     formData.append('appointment_id', appointmentId);
     formData.append('time', currentTime);
@@ -348,15 +345,11 @@ function completeAppointment() {
         method: 'POST',
         body: formData
     })
-    .then(() => {
-        // Then complete the appointment
-        return fetch(`/admin/checkout/${appointmentId}`, {
-            method: 'POST'
-        });
-    })
+    .then(() => fetch(`/admin/checkout/${appointmentId}`, { method: 'POST' }))
     .then(() => {
         closeEditAppointment();
-        window.location.reload();
+        // Refresh only the grid, not entire page
+        location.reload();
     });
 }
 
@@ -364,12 +357,10 @@ function cancelAppointment() {
     if (confirm('Are you sure you want to cancel this appointment?')) {
         const appointmentId = document.getElementById('editAppointmentId').value;
         
-        fetch(`/admin/cancel/${appointmentId}`, {
-            method: 'POST'
-        })
+        fetch(`/admin/cancel/${appointmentId}`, { method: 'POST' })
         .then(() => {
             closeEditAppointment();
-            window.location.reload();
+            location.reload();
         });
     }
 }
@@ -378,31 +369,28 @@ function reopenAppointment() {
     if (confirm('Reopen this completed appointment? This will remove it from revenue.')) {
         const appointmentId = document.getElementById('editAppointmentId').value;
         
-        fetch(`/admin/reopen/${appointmentId}`, {
-            method: 'POST'
-        })
+        fetch(`/admin/reopen/${appointmentId}`, { method: 'POST' })
         .then(() => {
             closeEditAppointment();
-            window.location.href = window.location.href;
+            location.reload();
         });
     }
 }
 
-// Refresh checker for new bookings
-console.log('Setting up refresh checker for dashboard');
+// Refresh checker only for client bookings - optimized
+console.log('Setting up refresh checker for client bookings');
 let lastCheck = Date.now() / 1000;
 setInterval(() => {
     fetch(`/api/check-refresh?last_check=${lastCheck}`)
         .then(response => response.json())
         .then(data => {
-            console.log('Refresh check:', data);
             if (data.refresh_needed) {
-                console.log('New booking detected, refreshing...');
+                console.log('New client booking detected, refreshing...');
                 window.location.reload();
             }
             lastCheck = data.timestamp;
         })
         .catch(error => console.log('Refresh check failed:', error));
-}, 1000);
+}, 10000); // 10 seconds - only for external client bookings
 </script>
 {% endblock %}
