@@ -92,15 +92,13 @@ async def home(request: Request):
 async def location_selector(request: Request):
     return templates.TemplateResponse("location_selector.html", {"request": request})
 
-@app.get("/test")
-async def test_page():
-    with open("test.html", "r") as f:
-        return HTMLResponse(content=f.read())
+@app.get("/favicon.ico")
+async def favicon():
+    return RedirectResponse(url="/static/favicon.ico", status_code=301)
 
-@app.get("/test-dashboard")
-async def test_dashboard():
-    with open("test_dashboard.html", "r") as f:
-        return HTMLResponse(content=f.read())
+@app.get("/photos/{location}/{filename}")
+async def photos(location: str, filename: str):
+    return RedirectResponse(url=f"/static/photos/{location}/{filename}", status_code=301)
 
 @app.get("/mallorca/book", response_class=HTMLResponse)
 async def book_appointment_mallorca(request: Request, db: Session = Depends(get_db)):
@@ -199,6 +197,8 @@ async def create_appointment_helper(
         if barber_id == "random":
             appointment.is_random = 1
             db.commit()
+        
+        print(f"✅ Appointment created: ID={appointment.id}, Name={client_name}, Time={appointment_time}")
         # Send email only if provided
         if client_email and client_email.strip():
             service = crud.get_service_by_id(db, service_id)
@@ -391,16 +391,25 @@ async def reopen_appointment(appointment_id: int, db: Session = Depends(get_db))
 async def edit_appointment(
     appointment_id: int = Form(...),
     client_name: str = Form(...),
-    barber_id: int = Form(...),
-    time: str = Form(...),
-    price: float = Form(...),
-    duration: int = Form(...),
+    barber_id: int = Form(None),
+    time: str = Form(None),
+    price: float = Form(None),
+    duration: int = Form(None),
     db: Session = Depends(get_db)
 ):
     try:
-        crud.update_appointment_details(db, appointment_id, client_name, barber_id, time, price, duration)
+        # Only update provided fields
+        if barber_id and time and price and duration:
+            crud.update_appointment_details(db, appointment_id, client_name, barber_id, time, price, duration)
+        else:
+            # Just update name if other fields missing
+            appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+            if appointment:
+                appointment.client_name = client_name
+                db.commit()
         return {"success": True, "message": "Appointment updated successfully"}
-    except ValueError as e:
+    except Exception as e:
+        print(f"Edit appointment error: {e}")
         return {"success": False, "message": str(e)}
 
 @app.post("/admin/add-appointment")

@@ -138,18 +138,23 @@ def create_appointment_admin(db: Session, client_name: str, phone: str, service_
 def create_appointment_admin_fast(db: Session, client_name: str, service_id: int, barber_id: int, appointment_time: str, duration: int, price: float):
     appointment_dt = datetime.fromisoformat(appointment_time)
     
-    # Ultra-fast admin creation - single transaction
-    appointment = models.Appointment(
-        client_name=client_name,
-        service_id=service_id,
-        barber_id=barber_id,
-        appointment_time=appointment_dt,
-        custom_duration=duration,
-        custom_price=price
-    )
-    db.add(appointment)
-    db.commit()
-    return appointment
+    # Ultra-fast admin creation with transaction isolation
+    try:
+        appointment = models.Appointment(
+            client_name=client_name,
+            service_id=service_id,
+            barber_id=barber_id,
+            appointment_time=appointment_dt,
+            custom_duration=duration,
+            custom_price=price
+        )
+        db.add(appointment)
+        db.flush()  # Get ID without committing
+        db.commit()
+        return appointment
+    except Exception as e:
+        db.rollback()
+        raise e
 
 def get_today_appointments_ordered(db: Session):
     today = datetime.now().date()
