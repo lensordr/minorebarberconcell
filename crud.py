@@ -437,53 +437,6 @@ def checkout_appointment_ultra_fast(db: Session, appointment_id: int):
     
     db.commit()
     return True
-    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
-    if appointment and appointment.status != "completed":
-        appointment.status = "completed"
-        
-        # Save to monthly revenue immediately
-        today = datetime.now().date()
-        monthly_record = db.query(models.MonthlyRevenue).filter(
-            models.MonthlyRevenue.barber_id == appointment.barber_id,
-            models.MonthlyRevenue.year == today.year,
-            models.MonthlyRevenue.month == today.month
-        ).first()
-        
-        if not monthly_record:
-            monthly_record = models.MonthlyRevenue(
-                barber_id=appointment.barber_id,
-                year=today.year,
-                month=today.month,
-                revenue=0,
-                appointments_count=0
-            )
-            db.add(monthly_record)
-        
-        monthly_record.revenue += appointment.custom_price or appointment.service.price
-        monthly_record.appointments_count += 1
-        
-        # Save to daily revenue
-        date_str = today.strftime('%Y-%m-%d')
-        daily_record = db.query(models.DailyRevenue).filter(
-            models.DailyRevenue.barber_id == appointment.barber_id,
-            models.DailyRevenue.date == date_str
-        ).first()
-        
-        if not daily_record:
-            daily_record = models.DailyRevenue(
-                barber_id=appointment.barber_id,
-                date=date_str,
-                revenue=0,
-                appointments_count=0
-            )
-            db.add(daily_record)
-        
-        daily_record.revenue += appointment.custom_price or appointment.service.price
-        daily_record.appointments_count += 1
-        
-        db.commit()
-        db.refresh(appointment)
-    return appointment
 
 def cancel_appointment(db: Session, appointment_id: int):
     appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()

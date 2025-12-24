@@ -661,7 +661,13 @@ async def check_refresh(last_check: str = "0"):
         "timestamp": last_booking_time
     }
 
-@app.get("/debug/luca-1300")
+@app.get("/debug/simple")
+async def debug_simple(db: Session = Depends(get_db)):
+    try:
+        count = db.query(models.Appointment).count()
+        return {"total_appointments": count, "status": "ok"}
+    except Exception as e:
+        return {"error": str(e)}
 async def debug_luca_1300(db: Session = Depends(get_db)):
     from datetime import datetime, timedelta
     today = datetime.now().date()
