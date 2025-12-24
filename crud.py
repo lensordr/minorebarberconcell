@@ -136,27 +136,22 @@ def create_appointment_admin(db: Session, client_name: str, phone: str, service_
     return appointment
 
 def create_appointment_lightning_fast(db: Session, client_name: str, service_id: int, barber_id: int, appointment_time: str, duration: int, price: float):
-    from sqlalchemy import text
-    
-    # Single SQL insert - fastest possible
     appointment_dt = datetime.fromisoformat(appointment_time)
     
-    result = db.execute(text("""
-        INSERT INTO appointments (client_name, service_id, barber_id, appointment_time, custom_duration, custom_price, is_online, status)
-        VALUES (:client_name, :service_id, :barber_id, :appointment_time, :duration, :price, 0, 'scheduled')
-        RETURNING id
-    """), {
-        "client_name": client_name,
-        "service_id": service_id,
-        "barber_id": barber_id,
-        "appointment_time": appointment_dt,
-        "duration": duration,
-        "price": price
-    })
-    
-    appointment_id = result.fetchone()[0]
+    # Safe SQL insert with proper conflict handling
+    appointment = models.Appointment(
+        client_name=client_name,
+        service_id=service_id,
+        barber_id=barber_id,
+        appointment_time=appointment_dt,
+        custom_duration=duration,
+        custom_price=price,
+        is_online=0  # Mark as walk-in
+    )
+    db.add(appointment)
     db.commit()
-    return appointment_id
+    db.refresh(appointment)
+    return appointment.id
 
 def get_today_appointments_ordered(db: Session):
     today = datetime.now().date()
@@ -390,46 +385,55 @@ def get_barbers_with_revenue_by_location(db: Session, location_id: int):
     return barbers
 
 def checkout_appointment_ultra_fast(db: Session, appointment_id: int):
-    from sqlalchemy import text
+    # Safe ORM update instead of raw SQL
+    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+    if not appointment or appointment.status == "completed":
+        return False
+        
+    appointment.status = "completed"
     
-    # Single SQL statement for everything
+    # Fast revenue update
     today = datetime.now().date()
+    revenue_amount = appointment.custom_price or appointment.service.price
     
-    # Get appointment data in one query
-    result = db.execute(text("""
-        SELECT a.id, a.barber_id, a.custom_price, s.price 
-        FROM appointments a 
-        JOIN services s ON a.service_id = s.id 
-        WHERE a.id = :appointment_id AND a.status != 'completed'
-    """), {"appointment_id": appointment_id}).fetchone()
+    # Upsert monthly revenue
+    monthly_record = db.query(models.MonthlyRevenue).filter(
+        models.MonthlyRevenue.barber_id == appointment.barber_id,
+        models.MonthlyRevenue.year == today.year,
+        models.MonthlyRevenue.month == today.month
+    ).first()
     
-    if not result:
-        return None
-        
-    barber_id, custom_price, service_price = result[1], result[2], result[3]
-    revenue_amount = custom_price or service_price
+    if monthly_record:
+        monthly_record.revenue += revenue_amount
+        monthly_record.appointments_count += 1
+    else:
+        monthly_record = models.MonthlyRevenue(
+            barber_id=appointment.barber_id,
+            year=today.year,
+            month=today.month,
+            revenue=revenue_amount,
+            appointments_count=1
+        )
+        db.add(monthly_record)
     
-    # Bulk update in single transaction
-    db.execute(text("""
-        UPDATE appointments SET status = 'completed' WHERE id = :appointment_id;
-        
-        INSERT INTO monthly_revenue (barber_id, year, month, revenue, appointments_count)
-        VALUES (:barber_id, :year, :month, :revenue, 1)
-        ON CONFLICT (barber_id, year, month) 
-        DO UPDATE SET revenue = revenue + :revenue, appointments_count = appointments_count + 1;
-        
-        INSERT INTO daily_revenue (barber_id, date, revenue, appointments_count)
-        VALUES (:barber_id, :date, :revenue, 1)
-        ON CONFLICT (barber_id, date)
-        DO UPDATE SET revenue = revenue + :revenue, appointments_count = appointments_count + 1;
-    """), {
-        "appointment_id": appointment_id,
-        "barber_id": barber_id,
-        "year": today.year,
-        "month": today.month,
-        "date": today.strftime('%Y-%m-%d'),
-        "revenue": revenue_amount
-    })
+    # Upsert daily revenue
+    date_str = today.strftime('%Y-%m-%d')
+    daily_record = db.query(models.DailyRevenue).filter(
+        models.DailyRevenue.barber_id == appointment.barber_id,
+        models.DailyRevenue.date == date_str
+    ).first()
+    
+    if daily_record:
+        daily_record.revenue += revenue_amount
+        daily_record.appointments_count += 1
+    else:
+        daily_record = models.DailyRevenue(
+            barber_id=appointment.barber_id,
+            date=date_str,
+            revenue=revenue_amount,
+            appointments_count=1
+        )
+        db.add(daily_record)
     
     db.commit()
     return True
