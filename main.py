@@ -648,6 +648,14 @@ async def broadcast_update(update_type: str, data: dict = None):
                 if queue in active_connections:
                     active_connections.remove(queue)
 
+@app.get("/api/check-refresh")
+async def check_refresh(last_check: float = 0):
+    global last_booking_time
+    return {
+        "refresh_needed": last_booking_time > last_check,
+        "timestamp": last_booking_time
+    }
+
 @app.get("/export-data")
 async def export_data(db: Session = Depends(get_db)):
     barbers = db.query(models.Barber).all()
