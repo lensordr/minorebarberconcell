@@ -138,20 +138,34 @@ def create_appointment_admin(db: Session, client_name: str, phone: str, service_
 def create_appointment_lightning_fast(db: Session, client_name: str, service_id: int, barber_id: int, appointment_time: str, duration: int, price: float):
     appointment_dt = datetime.fromisoformat(appointment_time)
     
-    # Safe SQL insert with proper conflict handling
-    appointment = models.Appointment(
-        client_name=client_name,
-        service_id=service_id,
-        barber_id=barber_id,
-        appointment_time=appointment_dt,
-        custom_duration=duration,
-        custom_price=price,
-        is_online=0  # Mark as walk-in
-    )
-    db.add(appointment)
-    db.commit()
-    db.refresh(appointment)
-    return appointment.id
+    # CRITICAL: Check for existing appointments at this exact time and barber
+    existing = db.query(models.Appointment).filter(
+        models.Appointment.barber_id == barber_id,
+        models.Appointment.appointment_time == appointment_dt,
+        models.Appointment.status != "cancelled"
+    ).first()
+    
+    if existing:
+        raise ValueError(f"Time slot already occupied by {existing.client_name}")
+    
+    # Safe appointment creation with proper isolation
+    try:
+        appointment = models.Appointment(
+            client_name=client_name,
+            service_id=service_id,
+            barber_id=barber_id,
+            appointment_time=appointment_dt,
+            custom_duration=duration,
+            custom_price=price,
+            is_online=0  # Mark as walk-in
+        )
+        db.add(appointment)
+        db.flush()  # Get ID without committing
+        db.commit()
+        return appointment.id
+    except Exception as e:
+        db.rollback()
+        raise ValueError(f"Failed to create appointment: {str(e)}")
 
 def get_today_appointments_ordered(db: Session):
     today = datetime.now().date()

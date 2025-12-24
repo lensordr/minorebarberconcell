@@ -661,11 +661,37 @@ async def check_refresh(last_check: str = "0"):
         "timestamp": last_booking_time
     }
 
-@app.get("/debug/simple")
-async def debug_simple(db: Session = Depends(get_db)):
+@app.get("/debug/luca-appointments")
+async def debug_luca_appointments(db: Session = Depends(get_db)):
     try:
-        count = db.query(models.Appointment).count()
-        return {"total_appointments": count, "status": "ok"}
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        
+        # Find Luca's barber ID
+        luca = db.query(models.Barber).filter(models.Barber.name == "Luca").first()
+        if not luca:
+            return {"error": "Luca not found"}
+        
+        # Get ALL appointments for Luca today
+        appointments = db.query(models.Appointment).filter(
+            models.Appointment.barber_id == luca.id,
+            models.Appointment.appointment_time >= today,
+            models.Appointment.appointment_time < today + timedelta(days=1)
+        ).order_by(models.Appointment.appointment_time, models.Appointment.id).all()
+        
+        result = []
+        for apt in appointments:
+            result.append({
+                "id": apt.id,
+                "client_name": apt.client_name,
+                "time": apt.appointment_time.strftime("%H:%M"),
+                "status": apt.status,
+                "is_online": apt.is_online or 0,
+                "service": apt.service.name if apt.service else "Unknown",
+                "barber_id": apt.barber_id
+            })
+        
+        return {"luca_appointments": result, "count": len(result), "barber_id": luca.id}
     except Exception as e:
         return {"error": str(e)}
 async def debug_luca_1300(db: Session = Depends(get_db)):
