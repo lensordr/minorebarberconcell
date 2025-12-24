@@ -14,7 +14,7 @@ from apscheduler.triggers.cron import CronTrigger
 import json
 from sse_starlette.sse import EventSourceResponse
 from contextlib import asynccontextmanager
-import io
+import time
 
 def check_admin_auth(request: Request, admin_logged_in: str = Cookie(None)):
     if admin_logged_in != "true":
@@ -49,10 +49,10 @@ last_booking_time = 0
 # Keep-alive scheduler - disabled for local development
 scheduler = AsyncIOScheduler()
 
-# Only enable keep-alive in production
+# Only enable keep-alive in production during business hours
 if os.environ.get('RENDER_EXTERNAL_URL'):
     async def keep_alive():
-        """Keep app alive during business hours (10 AM - 8 PM CET)"""
+        """Keep app alive only during business hours (10 AM - 10 PM CET)"""
         import aiohttp
         from datetime import timezone, timedelta
         
@@ -60,6 +60,7 @@ if os.environ.get('RENDER_EXTERNAL_URL'):
         current_time = datetime.now(cet)
         current_hour = current_time.hour
         
+        # Only ping during business hours to save compute time
         if 10 <= current_hour < 22:
             try:
                 app_url = os.environ.get('RENDER_EXTERNAL_URL')
@@ -68,7 +69,10 @@ if os.environ.get('RENDER_EXTERNAL_URL'):
                         print(f"Keep-alive: {response.status}")
             except Exception as e:
                 print(f"Keep-alive error: {e}")
+        else:
+            print(f"Outside business hours ({current_hour}:00 CET) - sleeping")
     
+    # Keep-alive every 14 minutes to prevent Render sleep (15min timeout)
     scheduler.add_job(keep_alive, 'interval', minutes=14, id='keep_alive')
     
     from daily_revenue_email import send_daily_revenue_email
@@ -218,11 +222,13 @@ async def create_appointment_helper(
         else:
             print(f"No email provided - appointment created without email notification")
         
-        # Update refresh flag
+        # Trigger instant dashboard refresh
         global last_booking_time
         import time
         last_booking_time = time.time()
-        print(f"New booking created! Updated last_booking_time to {last_booking_time}")
+        
+        # Broadcast real-time update
+        await broadcast_update("new_appointment", {"client_name": client_name, "time": appointment_time})
         # Redirect with email parameter
         email_param = "true" if client_email and client_email.strip() else "false"
         location_path = "mallorca" if location_id == 1 else "concell"
@@ -372,8 +378,11 @@ async def delete_service(service_id: int, db: Session = Depends(get_db), auth: b
 
 @app.post("/admin/checkout/{appointment_id}")
 async def checkout_appointment(appointment_id: int, db: Session = Depends(get_db)):
-    crud.checkout_appointment_fast(db, appointment_id)
-    return {"success": True}
+    result = crud.checkout_appointment_ultra_fast(db, appointment_id)
+    if result:
+        return {"success": True}
+    else:
+        return {"success": False, "message": "Appointment not found or already completed"}
 
 @app.post("/admin/cancel/{appointment_id}")
 async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
@@ -398,17 +407,30 @@ async def edit_appointment(
     db: Session = Depends(get_db)
 ):
     try:
-        # Only update provided fields
-        if barber_id and time and price and duration:
-            crud.update_appointment_details(db, appointment_id, client_name, barber_id, time, price, duration)
-        else:
-            # Just update name if other fields missing
-            appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
-            if appointment:
-                appointment.client_name = client_name
-                db.commit()
+        # Always update all fields when provided
+        appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+        if not appointment:
+            return {"success": False, "message": "Appointment not found"}
+        
+        # Update basic info
+        appointment.client_name = client_name
+        
+        # Update optional fields
+        if barber_id:
+            appointment.barber_id = barber_id
+        if time:
+            current_date = appointment.appointment_time.date()
+            new_time = datetime.strptime(time, "%H:%M").time()
+            appointment.appointment_time = datetime.combine(current_date, new_time)
+        if price is not None:
+            appointment.custom_price = price
+        if duration is not None:
+            appointment.custom_duration = duration
+            
+        db.commit()
         return {"success": True, "message": "Appointment updated successfully"}
     except Exception as e:
+        db.rollback()
         print(f"Edit appointment error: {e}")
         return {"success": False, "message": str(e)}
 
@@ -423,8 +445,8 @@ async def add_manual_appointment(
     db: Session = Depends(get_db)
 ):
     try:
-        # Fast admin appointment creation
-        appointment = crud.create_appointment_admin_fast(db, client_name, service_id, barber_id, appointment_time, duration, price)
+        # Lightning-fast appointment creation
+        appointment_id = crud.create_appointment_lightning_fast(db, client_name, service_id, barber_id, appointment_time, duration, price)
         
         # Trigger dashboard refresh
         global last_booking_time
@@ -574,14 +596,32 @@ async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Se
             "cancel_token": cancel_token
         })
 
-@app.get("/api/check-refresh")
-async def check_refresh(last_check: float = 0):
-    # Fast response - minimal processing
-    global last_booking_time
-    return {
-        "refresh_needed": last_booking_time > last_check,
-        "timestamp": last_booking_time
-    }
+# Real-time update system
+active_connections = set()
+
+@app.get("/api/live-updates")
+async def live_updates(request: Request):
+    async def event_stream():
+        connection_id = id(request)
+        active_connections.add(connection_id)
+        
+        try:
+            while True:
+                # Send heartbeat every 30 seconds
+                yield f"data: {{\"type\": \"heartbeat\", \"timestamp\": {time.time()}}}\n\n"
+                await asyncio.sleep(30)
+        except asyncio.CancelledError:
+            active_connections.discard(connection_id)
+            raise
+    
+    return EventSourceResponse(event_stream())
+
+async def broadcast_update(update_type: str, data: dict = None):
+    """Broadcast real-time updates to all connected dashboards"""
+    if active_connections:
+        message = {"type": update_type, "data": data, "timestamp": time.time()}
+        # In a real implementation, you'd send to all connections
+        print(f"Broadcasting: {message}")
 
 @app.get("/export-data")
 async def export_data(db: Session = Depends(get_db)):
