@@ -227,8 +227,12 @@ async def create_appointment_helper(
         import time
         last_booking_time = time.time()
         
-        # Broadcast real-time update
-        await broadcast_update("new_appointment", {"client_name": client_name, "time": appointment_time})
+        # Broadcast real-time update to admin dashboards
+        import asyncio
+        try:
+            asyncio.create_task(broadcast_update("new_appointment", {"client_name": client_name, "time": appointment_time}))
+        except:
+            pass  # Don't fail if broadcast fails
         # Redirect with email parameter
         email_param = "true" if client_email and client_email.strip() else "false"
         location_path = "mallorca" if location_id == 1 else "concell"
@@ -597,22 +601,33 @@ async def confirm_cancel_appointment(request: Request, cancel_token: str, db: Se
         })
 
 # Real-time update system
-active_connections = set()
+active_connections = []
 
 @app.get("/api/live-updates")
 async def live_updates(request: Request):
     async def event_stream():
-        connection_id = id(request)
-        active_connections.add(connection_id)
+        import asyncio
+        import json
+        
+        # Add this connection to active connections
+        queue = asyncio.Queue()
+        active_connections.append(queue)
         
         try:
             while True:
-                # Send heartbeat every 30 seconds
-                yield f"data: {{\"type\": \"heartbeat\", \"timestamp\": {time.time()}}}\n\n"
-                await asyncio.sleep(30)
+                # Wait for updates or timeout after 30 seconds
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(message)}\n\n"
+                except asyncio.TimeoutError:
+                    # Send heartbeat
+                    yield f"data: {{\"type\": \"heartbeat\", \"timestamp\": {time.time()}}}\n\n"
         except asyncio.CancelledError:
-            active_connections.discard(connection_id)
+            active_connections.remove(queue)
             raise
+        finally:
+            if queue in active_connections:
+                active_connections.remove(queue)
     
     return EventSourceResponse(event_stream())
 
@@ -620,8 +635,16 @@ async def broadcast_update(update_type: str, data: dict = None):
     """Broadcast real-time updates to all connected dashboards"""
     if active_connections:
         message = {"type": update_type, "data": data, "timestamp": time.time()}
-        # In a real implementation, you'd send to all connections
-        print(f"Broadcasting: {message}")
+        print(f"Broadcasting to {len(active_connections)} connections: {message}")
+        
+        # Send to all active connections
+        for queue in active_connections.copy():
+            try:
+                queue.put_nowait(message)
+            except:
+                # Remove broken connections
+                if queue in active_connections:
+                    active_connections.remove(queue)
 
 @app.get("/export-data")
 async def export_data(db: Session = Depends(get_db)):
